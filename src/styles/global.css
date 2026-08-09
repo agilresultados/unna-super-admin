@@ -1,0 +1,90 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  background-color: #0a0f12;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
+}
+
+#root {
+  background-color: #0a0f12;
+  color: #e2e8f0;
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
+/* Páginas portadas: evita estouro horizontal em mobile */
+main {
+  -webkit-overflow-scrolling: touch;
+}
+
+/*
+ * Contenção de layout das páginas portadas do front.
+ * Elas usam min-h-screen / padding próprio — dentro do shell isso dobra scroll
+ * e estoura a largura do flex.
+ */
+.sa-page {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.sa-page > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* min-h-screen em páginas filhas vira altura do container, não 100vh da janela */
+.sa-page .min-h-screen {
+  min-height: 0 !important;
+}
+
+/* 100vw ignora a sidebar e gera scroll horizontal */
+.sa-page .w-screen {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Tabelas largas: rolam dentro do card, não da janela */
+.sa-page table {
+  max-width: 100%;
+}
+
+.sa-page .overflow-x-auto,
+.sa-page [class*='overflow-x'] {
+  max-width: 100%;
+}
+
+/* Headers de página: quebra em telas estreitas em vez de empurrar botões pra fora */
+.sa-page .flex.justify-between {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* color-scheme dark melhora scrollbars/nativos no Chrome */
+:root {
+  color-scheme: dark;
+}

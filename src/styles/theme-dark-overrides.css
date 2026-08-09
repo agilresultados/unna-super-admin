@@ -1,0 +1,192 @@
+/**
+ * Páginas portadas do front usam classes light (bg-white, gray-*, etc.).
+ * Este arquivo força o design dark teal do superadmin sem reescrever 14k linhas.
+ * Especifidade alta + !important para vencer utilitários do Tailwind.
+ */
+
+/* —— Superfícies —— */
+.sa-dark .bg-white {
+  background-color: #141b1f !important;
+}
+.sa-dark .bg-gray-50,
+.sa-dark .bg-slate-50,
+.sa-dark .bg-neutral-50,
+.sa-dark .bg-zinc-50 {
+  background-color: #0a0f12 !important;
+}
+.sa-dark .bg-gray-100,
+.sa-dark .bg-slate-100,
+.sa-dark .bg-neutral-100 {
+  background-color: #1e2b2f !important;
+}
+.sa-dark .bg-gray-200,
+.sa-dark .bg-slate-200 {
+  background-color: #1e3838 !important;
+}
+.sa-dark .bg-gray-800 {
+  background-color: #141b1f !important;
+}
+.sa-dark .bg-gray-900 {
+  background-color: #0a0f12 !important;
+}
+
+/* hover backgrounds light */
+.sa-dark .hover\:bg-gray-50:hover,
+.sa-dark .hover\:bg-slate-50:hover {
+  background-color: #1e3838 !important;
+}
+.sa-dark .hover\:bg-gray-100:hover {
+  background-color: #1e3838 !important;
+}
+.sa-dark .hover\:bg-white:hover {
+  background-color: #1e2b2f !important;
+}
+
+/* —— Texto —— */
+.sa-dark .text-gray-900,
+.sa-dark .text-slate-900,
+.sa-dark .text-neutral-900,
+.sa-dark .text-zinc-900,
+.sa-dark .text-black {
+  color: #e2e8f0 !important;
+}
+.sa-dark .text-gray-800,
+.sa-dark .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+.sa-dark .text-gray-700,
+.sa-dark .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+.sa-dark .text-gray-600,
+.sa-dark .text-slate-600 {
+  color: #94a3b8 !important;
+}
+.sa-dark .text-gray-500,
+.sa-dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+.sa-dark .text-gray-400,
+.sa-dark .text-slate-400 {
+  color: #64748b !important;
+}
+.sa-dark .text-gray-300 {
+  color: #475569 !important;
+}
+
+.sa-dark .hover\:text-gray-900:hover {
+  color: #e2e8f0 !important;
+}
+
+/* —— Bordas —— */
+.sa-dark .border-gray-50,
+.sa-dark .border-gray-100,
+.sa-dark .border-slate-100 {
+  border-color: #2d5353 !important;
+}
+.sa-dark .border-gray-200,
+.sa-dark .border-slate-200,
+.sa-dark .border-gray-300 {
+  border-color: #2d5353 !important;
+}
+.sa-dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+.sa-dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #2d5353 !important;
+}
+
+/* —— Inputs / selects nativos em páginas —— */
+.sa-dark input:not([type='checkbox']):not([type='radio']):not([type='range']),
+.sa-dark select,
+.sa-dark textarea {
+  background-color: #0a0f12;
+  color: #e2e8f0;
+  border-color: #2d5353;
+}
+.sa-dark input::placeholder,
+.sa-dark textarea::placeholder {
+  color: #64748b;
+}
+.sa-dark option {
+  background-color: #141b1f;
+  color: #e2e8f0;
+}
+
+/* —— Tabelas —— */
+.sa-dark table thead,
+.sa-dark tr.bg-gray-50 {
+  background-color: #0a0f12 !important;
+}
+.sa-dark tbody tr:hover {
+  background-color: rgba(30, 56, 56, 0.45);
+}
+
+/* —— Shadows em cards dark —— */
+.sa-dark .shadow-sm,
+.sa-dark .shadow,
+.sa-dark .shadow-md {
+  --tw-shadow-color: rgba(0, 0, 0, 0.35);
+}
+
+/* —— Status badges light → dark —— */
+.sa-dark .bg-green-50 {
+  background-color: rgba(34, 197, 94, 0.12) !important;
+}
+.sa-dark .bg-green-100 {
+  background-color: rgba(34, 197, 94, 0.18) !important;
+}
+.sa-dark .text-green-700,
+.sa-dark .text-green-800 {
+  color: #4ade80 !important;
+}
+.sa-dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+}
+.sa-dark .bg-red-100 {
+  background-color: rgba(239, 68, 68, 0.18) !important;
+}
+.sa-dark .text-red-600,
+.sa-dark .text-red-700 {
+  color: #f87171 !important;
+}
+.sa-dark .bg-yellow-50,
+.sa-dark .bg-amber-50 {
+  background-color: rgba(234, 179, 8, 0.12) !important;
+}
+.sa-dark .bg-yellow-100,
+.sa-dark .bg-amber-100 {
+  background-color: rgba(234, 179, 8, 0.18) !important;
+}
+.sa-dark .text-yellow-700,
+.sa-dark .text-amber-700,
+.sa-dark .text-yellow-800 {
+  color: #facc15 !important;
+}
+.sa-dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+}
+.sa-dark .bg-blue-100 {
+  background-color: rgba(59, 130, 246, 0.18) !important;
+}
+.sa-dark .text-blue-700,
+.sa-dark .text-blue-800 {
+  color: #60a5fa !important;
+}
+.sa-dark .bg-purple-50 {
+  background-color: rgba(168, 85, 247, 0.12) !important;
+}
+.sa-dark .text-purple-700 {
+  color: #c084fc !important;
+}
+
+/* hover red soft buttons */
+.sa-dark .hover\:bg-red-50:hover {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+}
+.sa-dark .hover\:border-red-200:hover {
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+/* ring / outline soft */
+.sa-dark .ring-black\/5 {
+  --tw-ring-color: rgba(20, 184, 166, 0.15);
+}
