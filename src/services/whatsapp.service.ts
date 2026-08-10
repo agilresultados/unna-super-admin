@@ -1,5 +1,6 @@
 // Serviço WhatsApp usando UUID diretamente (nova implementação)
 // O empresaId é usado como UUID para identificar a sessão WhatsApp
+import { getAccessToken } from '@/api/tokenStorage'
 
 // URL base do serviço WhatsApp (same backend as the main API, without /api prefix)
 const WHATSAPP_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3090').replace(/\/api\/?$/, '');
@@ -63,20 +64,10 @@ class WhatsAppService {
     }
   }
 
-  // Obter token JWT do localStorage
-  private getToken(): string | null {
-    try {
-      return localStorage.getItem('token');
-    } catch (error) {
-      console.error('Erro ao obter token:', error);
-      return null;
-    }
-  }
-
-  // Helper para headers com autenticação
+  // Helper para headers com autenticação (storage isolado unna_sa_*)
   private getHeaders(): HeadersInit {
-    const token = this.getToken();
-    const headers: any = {
+    const token = getAccessToken();
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 

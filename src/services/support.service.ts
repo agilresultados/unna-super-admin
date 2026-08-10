@@ -1,32 +1,27 @@
-// Service for SuperAdmin Support Chat — calls backend /support/* endpoints
+// Service for SuperAdmin Support Chat / broadcast / canais oficiais
+import { getAccessToken } from '@/api/tokenStorage'
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3090').replace(/\/api\/?$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3090').replace(/\/api\/?$/, '')
 
 class SupportService {
-    private getToken(): string | null {
-        try {
-            return localStorage.getItem('token');
-        } catch {
-            return null;
-        }
-    }
-
     private getHeaders(isFormData = false): HeadersInit {
-        const token = this.getToken();
-        const headers: Record<string, string> = {};
-        if (!isFormData) headers['Content-Type'] = 'application/json';
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        return headers;
+        const token = getAccessToken()
+        const headers: Record<string, string> = {}
+        if (!isFormData) headers['Content-Type'] = 'application/json'
+        // Storage isolado do superadmin: unna_sa_access_token (não "token" do front legado)
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        return headers
     }
 
     private async request<T = any>(path: string, options: RequestInit = {}, isFormData = false): Promise<T> {
-        const response = await fetch(`${API_BASE_URL}/${path}`, {
+        const normalized = path.replace(/^\//, '')
+        const response = await fetch(`${API_BASE_URL}/${normalized}`, {
             ...options,
             headers: { ...this.getHeaders(isFormData), ...((options.headers as Record<string, string>) || {}) },
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || data.message || 'Request failed');
-        return data;
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error((data as any).error || (data as any).message || 'Request failed')
+        return data as T
     }
 
     // ─── Session ───────────────────────────────────────────────

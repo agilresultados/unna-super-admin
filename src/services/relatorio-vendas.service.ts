@@ -76,13 +76,15 @@ class RelatorioVendasService {
     const queryString = params.toString();
     const endpoint = queryString ? `/relatorios/vendas/exportar?${queryString}` : '/relatorios/vendas/exportar';
     
-    const token = localStorage.getItem('token');
+    const { getAccessToken } = await import('@/api/tokenStorage');
+    const token = getAccessToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
     };
-    
-    const response = await fetch(`http://localhost:3090/api${endpoint}`, {
+
+    const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3090').replace(/\/api\/?$/, '');
+    const response = await fetch(`${base}${endpoint}`, {
       method: 'GET',
       headers,
     });

@@ -20,6 +20,7 @@ import WorkerMonitoring from '@/pages/WorkerMonitoring'
 import Marketing from '@/pages/Marketing'
 import Atribuicao from '@/pages/Atribuicao'
 import SdrPanel from '@/pages/SdrPanel'
+import Subcontas from '@/pages/Subcontas'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
           { path: 'empresas', element: <Empresas /> },
           { path: 'planos', element: <Planos /> },
           { path: 'assinaturas', element: <Assinaturas /> },
+          { path: 'subcontas', element: <Subcontas /> },
           { path: 'usuarios', element: <Usuarios /> },
           { path: 'clientes', element: <Clientes /> },
           { path: 'afiliados', element: <AfiliadosSuperAdmin /> },

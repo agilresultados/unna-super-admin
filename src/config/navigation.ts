@@ -38,6 +38,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: 'planos', label: 'Planos', to: '/planos', icon: 'card' },
       { key: 'assinaturas', label: 'Assinaturas', to: '/assinaturas', icon: 'card' },
+      { key: 'subcontas', label: 'Unna Pay (subcontas)', to: '/subcontas', icon: 'card' },
     ],
   },
   {
