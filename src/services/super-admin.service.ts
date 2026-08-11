@@ -58,6 +58,13 @@ export interface OnlineUser {
   role: string;
   empresa?: {
     nome_negocio: string;
+    assinatura?: {
+      status: 'ACTIVE' | 'TRIAL' | 'CANCELLED' | 'EXPIRED' | 'PENDING';
+      data_fim?: string | null;
+      plano?: {
+        nome: string;
+      } | null;
+    } | null;
   };
   ultimo_login?: string;
 }

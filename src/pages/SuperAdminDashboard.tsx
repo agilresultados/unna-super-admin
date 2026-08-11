@@ -147,6 +147,44 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const getPlanoOnlineBadge = (user: OnlineUser) => {
+    if (!user.empresa) {
+      return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-gray-100 text-gray-600">—</span>;
+    }
+
+    const assinatura = user.empresa.assinatura;
+    if (!assinatura) {
+      return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-100 text-red-700">Sem plano</span>;
+    }
+
+    const vencida = !!assinatura.data_fim && new Date(assinatura.data_fim) < new Date();
+    const ativa = (assinatura.status === 'ACTIVE' || assinatura.status === 'TRIAL') && !vencida;
+
+    const rotuloStatus: Record<string, string> = {
+      ACTIVE: 'Ativo',
+      TRIAL: 'Trial',
+      CANCELLED: 'Cancelado',
+      EXPIRED: 'Expirado',
+      PENDING: 'Pendente',
+    };
+    const rotulo = vencida ? 'Vencido' : (rotuloStatus[assinatura.status] || assinatura.status);
+
+    const cor = !ativa ? 'bg-red-100 text-red-700'
+      : assinatura.status === 'TRIAL' ? 'bg-purple-100 text-purple-700'
+      : 'bg-green-100 text-green-700';
+
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${cor}`}>
+          {rotulo}
+        </span>
+        {assinatura.plano?.nome && (
+          <span className="text-[10px] text-gray-500">{assinatura.plano.nome}</span>
+        )}
+      </div>
+    );
+  };
+
   const fetchEngagementStats = async () => {
     try {
       setLoadingEngagement(true);
@@ -655,6 +693,7 @@ const SuperAdminDashboard = () => {
                 <tr>
                   <th className="px-4 py-3">Usuário</th>
                   <th className="px-4 py-3">Empresa</th>
+                  <th className="px-4 py-3 text-center">Plano</th>
                   <th className="px-4 py-3 text-center">Perfil</th>
                 </tr>
               </thead>
@@ -667,6 +706,9 @@ const SuperAdminDashboard = () => {
                     </td>
                     <td className="px-4 py-4 text-gray-600">
                       {user.empresa?.nome_negocio || 'Administração Unna'}
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      {getPlanoOnlineBadge(user)}
                     </td>
                     <td className="px-4 py-4 text-center">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
