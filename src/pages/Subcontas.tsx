@@ -19,7 +19,10 @@ import {
     type SubcontaResumo,
     type SubcontaDossie,
     type UnnaPayConfig,
+    type EmpresaPiloto,
+    type StatusSubconta,
 } from '@/services/unna-pay.service';
+import { empresaService } from '@/services/empresa.service';
 
 const FILTROS = [
     { valor: 'solicitado', rotulo: 'Aguardando análise' },
@@ -226,8 +229,27 @@ export default function Subcontas() {
                                 <Percent className="w-4 h-4 self-center text-muted-foreground" />
                             </div>
                         </div>
+
+                        <label className="flex items-center gap-2 text-sm">
+                            <input
+                                type="checkbox"
+                                className="w-4 h-4"
+                                checked={config.piloto_habilitado}
+                                onChange={(e) => salvarConfig({ piloto_habilitado: e.target.checked })}
+                            />
+                            <span>
+                                <strong>Piloto (allowlist)</strong>
+                                <span className="block text-xs text-muted-foreground">
+                                    Desligar libera a opção no painel de TODAS as empresas.
+                                </span>
+                            </span>
+                        </label>
                     </CardContent>
                 </Card>
+            )}
+
+            {config?.piloto_habilitado && (
+                <PainelPiloto onErro={setErro} />
             )}
 
             <div className="flex flex-wrap gap-2">
@@ -471,5 +493,137 @@ function Linha({ rotulo, valor }: { rotulo: string; valor?: string | null }) {
             <dt className="text-muted-foreground">{rotulo}</dt>
             <dd className="font-medium text-right break-all">{valor}</dd>
         </div>
+    );
+}
+
+/**
+ * Quem enxerga "Receber pagamentos online" no painel.
+ *
+ * Gate de VISIBILIDADE, não de cobrança: remover daqui só some com a opção da
+ * tela dela. Quem já foi aprovado continua recebendo normalmente — para cortar
+ * isso existe o "Desabilitar" no dossiê.
+ */
+function PainelPiloto({ onErro }: { onErro: (e: string | null) => void }) {
+    const [piloto, setPiloto] = useState<EmpresaPiloto[]>([]);
+    const [termo, setTermo] = useState('');
+    const [resultados, setResultados] = useState<Array<{ id: string; nome_negocio: string; email?: string | null }>>([]);
+    const [buscando, setBuscando] = useState(false);
+    const [salvando, setSalvando] = useState(false);
+
+    useEffect(() => { carregar(); }, []);
+
+    const carregar = async () => {
+        try {
+            setPiloto((await unnaPayAdminService.listarPiloto()).empresas);
+        } catch (e: any) {
+            onErro(e?.message || 'Erro ao carregar o piloto');
+        }
+    };
+
+    const buscar = async () => {
+        if (termo.trim().length < 3) {
+            onErro('Digite ao menos 3 letras do nome da empresa.');
+            return;
+        }
+        try {
+            setBuscando(true);
+            onErro(null);
+            const r = await empresaService.getEmpresas({ search: termo.trim(), limit: 8 } as any);
+            // Já no piloto não volta na lista: evita o clique que não faz nada.
+            const jaNoPiloto = new Set(piloto.map((p) => p.empresaId));
+            setResultados((r.data || []).filter((e: any) => !jaNoPiloto.has(e.id)));
+        } catch (e: any) {
+            onErro(e?.message || 'Erro ao buscar empresas');
+        } finally {
+            setBuscando(false);
+        }
+    };
+
+    const adicionar = async (empresaId: string) => {
+        try {
+            setSalvando(true);
+            setPiloto((await unnaPayAdminService.adicionarAoPiloto(empresaId)).empresas);
+            setResultados((r) => r.filter((e) => e.id !== empresaId));
+        } catch (e: any) {
+            onErro(e?.message || 'Erro ao adicionar');
+        } finally {
+            setSalvando(false);
+        }
+    };
+
+    const remover = async (empresaId: string, nome: string) => {
+        if (!window.confirm(`Remover "${nome}" do piloto?\n\nA opção some do painel dela. Se já estiver aprovada, continua recebendo normalmente.`)) return;
+        try {
+            setSalvando(true);
+            setPiloto((await unnaPayAdminService.removerDoPiloto(empresaId)).empresas);
+        } catch (e: any) {
+            onErro(e?.message || 'Erro ao remover');
+        } finally {
+            setSalvando(false);
+        }
+    };
+
+    return (
+        <Card>
+            <CardContent className="py-4 space-y-4">
+                <div>
+                    <h3 className="text-sm font-semibold">Empresas com acesso ao recebimento online</h3>
+                    <p className="text-xs text-muted-foreground">
+                        Só estas veem a opção em Taxas / Comissões e conseguem solicitar a subconta.
+                    </p>
+                </div>
+
+                <div className="flex gap-2">
+                    <Input
+                        placeholder="Buscar empresa pelo nome..."
+                        value={termo}
+                        onChange={(e: any) => setTermo(e.target.value)}
+                        onKeyDown={(e: any) => e.key === 'Enter' && buscar()}
+                    />
+                    <Button variant="outline" onClick={buscar} disabled={buscando}>
+                        {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buscar'}
+                    </Button>
+                </div>
+
+                {resultados.length > 0 && (
+                    <div className="rounded-lg border divide-y">
+                        {resultados.map((e) => (
+                            <div key={e.id} className="flex items-center justify-between gap-3 p-2.5">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-medium truncate">{e.nome_negocio}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{e.email || 'sem e-mail'}</p>
+                                </div>
+                                <Button onClick={() => adicionar(e.id)} disabled={salvando}>Liberar</Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {piloto.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">
+                        Nenhuma empresa liberada — ninguém vê a opção no painel.
+                    </p>
+                ) : (
+                    <div className="rounded-lg border divide-y">
+                        {piloto.map((p) => (
+                            <div key={p.empresaId} className="flex items-center justify-between gap-3 p-2.5">
+                                <div className="min-w-0">
+                                    <p className={`text-sm font-medium truncate ${p.orfao ? 'text-red-600' : ''}`}>
+                                        {p.nome_negocio}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                        {ROTULO_STATUS_SUBCONTA[p.status_subconta as StatusSubconta] || p.status_subconta}
+                                        {p.email ? ` · ${p.email}` : ''}
+                                    </p>
+                                </div>
+                                <Button variant="outline" onClick={() => remover(p.empresaId, p.nome_negocio)} disabled={salvando}>
+                                    Remover
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     );
 }

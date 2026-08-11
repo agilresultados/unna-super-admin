@@ -52,6 +52,24 @@ export interface UnnaPayConfig {
   /** Kill switch global: desliga a emissão de cobrança em toda a base. */
   habilitado: boolean
   taxa_percentual_padrao: number
+  /** Liga a allowlist. Desligada, TODA a base enxerga a opção no painel. */
+  piloto_habilitado: boolean
+  /** IDs das empresas que veem "Receber pagamentos online". */
+  empresas_piloto: string[]
+}
+
+export interface EmpresaPiloto {
+  empresaId: string
+  nome_negocio: string
+  email?: string | null
+  status_subconta: string
+  /** ID na allowlist sem empresa correspondente (empresa apagada). */
+  orfao: boolean
+}
+
+export interface PilotoResponse {
+  piloto_habilitado: boolean
+  empresas: EmpresaPiloto[]
 }
 
 export const ROTULO_STATUS_SUBCONTA: Record<StatusSubconta, string> = {
@@ -114,6 +132,20 @@ class UnnaPayAdminService {
 
   updateConfig(patch: Partial<UnnaPayConfig>): Promise<UnnaPayConfig> {
     return apiService.put<UnnaPayConfig>('/super-admin/unna-pay/config', patch)
+  }
+
+  listarPiloto(): Promise<PilotoResponse> {
+    return apiService.get<PilotoResponse>('/super-admin/unna-pay/piloto')
+  }
+
+  /** Libera a opção no painel da empresa. Não aprova a subconta — isso é à parte. */
+  adicionarAoPiloto(empresaId: string): Promise<PilotoResponse> {
+    return apiService.post<PilotoResponse>(`/super-admin/unna-pay/piloto/${empresaId}`)
+  }
+
+  /** Some a opção do painel dela. NÃO derruba quem já está cobrando. */
+  removerDoPiloto(empresaId: string): Promise<PilotoResponse> {
+    return apiService.delete<PilotoResponse>(`/super-admin/unna-pay/piloto/${empresaId}`)
   }
 }
 
