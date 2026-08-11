@@ -11,6 +11,21 @@
       rel="stylesheet"
     />
     <title>Unna Superadmin</title>
+    <script>
+      // Aplica tema antes do paint para evitar flash (FOUC)
+      (function () {
+        try {
+          var t = localStorage.getItem('sa-theme');
+          if (t !== 'light' && t !== 'dark') t = 'dark';
+          var root = document.documentElement;
+          if (t === 'dark') root.classList.add('sa-dark');
+          else root.classList.remove('sa-dark');
+          root.style.colorScheme = t;
+        } catch (e) {
+          document.documentElement.classList.add('sa-dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

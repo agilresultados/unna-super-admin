@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
 import { Input } from '@/components/Input'
 import { Button } from '@/components/Button'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { ApiError } from '@/api/errors'
 
 const loginSchema = z.object({
@@ -59,10 +60,13 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-app-bg px-4">
+    <div className="relative flex min-h-full items-center justify-center bg-app-bg px-4">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md rounded-xl border border-teal-border bg-sidebar-bg p-8 shadow-[0_0_40px_rgba(20,184,166,0.12)]">
         <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-main text-sm font-bold text-app-bg">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-main text-sm font-bold text-primary-foreground">
             SA
           </div>
           <div>

@@ -10,7 +10,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-teal-main text-app-bg font-semibold hover:bg-teal-light shadow-md shadow-teal-main/20',
+    'bg-teal-main text-primary-foreground font-semibold hover:bg-teal-light shadow-md shadow-teal-main/20',
   secondary:
     'bg-transparent border border-teal-main text-teal-main hover:bg-teal-hover-bg font-semibold',
   ghost:

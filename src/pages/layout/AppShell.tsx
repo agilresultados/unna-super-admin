@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { filterNavForUser, type NavGroup, type NavItem } from '@/config/navigation'
 import { NavIcon } from '@/components/NavIcon'
 import { Button } from '@/components/Button'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 function linkClass(active: boolean) {
   return clsx(
@@ -33,7 +34,7 @@ function SidebarNav({
   return (
     <>
       <div className="flex h-14 shrink-0 items-center gap-3 border-b border-teal-border px-4 lg:h-16 lg:px-5">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-teal-main text-xs font-bold text-app-bg">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-teal-main text-xs font-bold text-primary-foreground">
           SA
         </div>
         <span className="truncate font-semibold tracking-wide">{brand}</span>
@@ -240,6 +241,7 @@ export function AppShell() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <ThemeToggle />
             <div className="hidden flex-col items-end sm:flex">
               <span className="max-w-[10rem] truncate text-xs font-semibold text-text-main lg:max-w-xs">
                 {user?.nome || 'Super Admin'}
