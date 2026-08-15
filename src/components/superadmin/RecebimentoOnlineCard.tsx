@@ -48,7 +48,7 @@ export default function RecebimentoOnlineCard() {
       <CardHeader className="bg-white dark:bg-gray-800">
         <CardTitle className="flex items-center gap-2">
           <Wallet className="w-5 h-5 text-primary" />
-          Receber Pagamentos Online (Salões)
+          Pagamentos Online (Salões)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
