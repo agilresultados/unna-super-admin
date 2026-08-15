@@ -22,6 +22,8 @@ import {
 import { sistemaConfigService } from '@/services/sistema-config.service';
 import { whatsappService } from '@/services/whatsapp.service';
 import { supportService } from '@/services/support.service';
+import GatewayPagamentoCard from '@/components/superadmin/GatewayPagamentoCard';
+import RecebimentoOnlineCard from '@/components/superadmin/RecebimentoOnlineCard';
 import { toast } from 'sonner';
 
 interface Configuracoes {
@@ -469,6 +471,12 @@ const Configuracoes = () => {
         </CardContent>
       </Card>
       
+      {/* Rollout de pagamento — cada card cuida de um eixo diferente do dinheiro:
+          o gateway cobra a mensalidade do salão, o recebimento online é o salão
+          cobrando a cliente dele. */}
+      <GatewayPagamentoCard />
+      <RecebimentoOnlineCard />
+
       {/* Footer info/links */}
       <div className="flex justify-center text-gray-300 py-4">
         <Globe className="w-4 h-4 opacity-50" />
