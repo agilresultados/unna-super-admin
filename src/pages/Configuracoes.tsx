@@ -24,6 +24,7 @@ import { whatsappService } from '@/services/whatsapp.service';
 import { supportService } from '@/services/support.service';
 import GatewayPagamentoCard from '@/components/superadmin/GatewayPagamentoCard';
 import RecebimentoOnlineCard from '@/components/superadmin/RecebimentoOnlineCard';
+import TermosAceiteCard from '@/components/superadmin/TermosAceiteCard';
 import { toast } from 'sonner';
 
 interface Configuracoes {
@@ -476,6 +477,7 @@ const Configuracoes = () => {
           cobrando a cliente dele. */}
       <GatewayPagamentoCard />
       <RecebimentoOnlineCard />
+      <TermosAceiteCard />
 
       {/* Footer info/links */}
       <div className="flex justify-center text-gray-300 py-4">
