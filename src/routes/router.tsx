@@ -21,6 +21,7 @@ import Marketing from '@/pages/Marketing'
 import Atribuicao from '@/pages/Atribuicao'
 import SdrPanel from '@/pages/SdrPanel'
 import Subcontas from '@/pages/Subcontas'
+import Atendimento from '@/pages/Atendimento'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
           { path: 'configuracoes', element: <Configuracoes /> },
           { path: 'feature-management', element: <FeatureManagement /> },
           { path: 'suporte', element: <NotificacaoMassa /> },
+          { path: 'atendimento', element: <Atendimento /> },
           { path: 'webhooks', element: <Webhooks /> },
           { path: 'campanhas', element: <Campanhas /> },
           { path: 'monitoramento', element: <WorkerMonitoring /> },

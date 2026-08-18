@@ -1,0 +1,175 @@
+.unna-atendimento {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: #fff;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgb(229 231 235);
+}
+
+.unna-atendimento-app {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.unna-atendimento-chat {
+  flex: 1;
+  min-width: 0;
+  border-left: 1px solid rgb(229 231 235);
+}
+
+.unna-atendimento-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6b7280;
+  gap: 8px;
+  text-align: center;
+  padding: 24px;
+}
+
+.unna-atendimento-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.unna-atendimento-empty-sub {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.unna-atendimento-agent [class*="ConversationCreate"],
+.unna-atendimento-agent button[class*="create"] {
+  display: none !important;
+}
+
+.dark .unna-atendimento {
+  background: rgb(17 24 39);
+  border-color: rgb(31 41 55);
+}
+
+.dark .unna-atendimento-chat {
+  border-left-color: rgb(31 41 55);
+}
+
+@media (max-width: 768px) {
+  .unna-atendimento-app {
+    flex-direction: column;
+  }
+
+  .unna-atendimento-chat {
+    border-left: none;
+    border-top: 1px solid rgb(229 231 235);
+  }
+}
+
+/* Identidade do cliente na lista de conversas: nome e empresa. */
+.unna-atendimento-titulo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.unna-atendimento-nome {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unna-atendimento-empresa {
+  font-size: 11px;
+  line-height: 14px;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Barra da conversa aberta: IDs copiáveis com espaço para caber inteiros. */
+.unna-atendimento-barra {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fafafa;
+}
+
+.unna-atendimento-barra-nome {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.unna-atendimento-ids {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.unna-atendimento-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 11px;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.unna-atendimento-chip:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.unna-atendimento-chip-label {
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+.unna-atendimento-chip-valor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Prévia da conversa com o emoji desenhado, igual ao que aparece no chat. */
+.unna-atendimento-previa {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.unna-atendimento-previa-emoji {
+  width: 16px;
+  height: 16px;
+  vertical-align: -3px;
+}
