@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { Combobox } from '@/components/ui/combobox';
 import { Building2, Calendar, Link as LinkIcon, Image as ImageIcon, FileText, Type } from 'lucide-react';
 import { campanhaService, Campanha } from '@/services/campanha.service';
 import { empresaService, Empresa } from '@/services/empresa.service';
@@ -61,9 +62,14 @@ const CampanhaModal: React.FC<CampanhaModalProps> = ({ isOpen, onClose, campanha
         }
     }, [isOpen, campanha]);
 
+    const empresaOptions = useMemo(() => [
+        { value: '', label: 'Global (Todas as empresas)' },
+        ...empresas.map(empresa => ({ value: empresa.id, label: empresa.nome_negocio }))
+    ], [empresas]);
+
     const loadEmpresas = async () => {
         try {
-            const response = await empresaService.getEmpresas({ limit: 1000 });
+            const response = await empresaService.getEmpresas({ limit: 2000 });
             const data = Array.isArray(response) ? response : (response.data || []);
             setEmpresas(data);
         } catch (error) {
@@ -209,16 +215,14 @@ const CampanhaModal: React.FC<CampanhaModalProps> = ({ isOpen, onClose, campanha
                         <Building2 size={14} className="text-gray-400" />
                         Empresa (Opcional - deixe vazio para Global)
                     </label>
-                    <select
+                    <Combobox
+                        options={empresaOptions}
                         value={formData.empresaId}
-                        onChange={e => setFormData(prev => ({ ...prev, empresaId: e.target.value }))}
-                        className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                    >
-                        <option value="">Global (Todas as empresas)</option>
-                        {empresas.map(empresa => (
-                            <option key={empresa.id} value={empresa.id}>{empresa.nome_negocio}</option>
-                        ))}
-                    </select>
+                        onChange={(v) => setFormData(prev => ({ ...prev, empresaId: v }))}
+                        placeholder="Global (Todas as empresas)"
+                        emptyText="Nenhuma empresa encontrada."
+                        className="h-10"
+                    />
                 </div>
 
                 <div className="flex items-center gap-2">
