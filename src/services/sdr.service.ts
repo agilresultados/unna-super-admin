@@ -8,6 +8,27 @@ export interface SdrRecuperacaoStats {
   suspensosNoMes: number;
 }
 
+export interface SdrFunilStats {
+  total: number;
+  disparados: number;
+  entregues: number;
+  lidos: number;
+  responderam: number;
+  falhas: number;
+  novos: number;
+  contatados: number;
+  emNegociacao: number;
+  convertidos: number;
+  perdidos: number;
+  pipeline: {
+    NOVO: number;
+    CONTATADO: number;
+    EM_NEGOCIACAO: number;
+    RECUPERADO: number;
+    PERDIDO: number;
+  };
+}
+
 export interface SdrDashboardStats {
   trialsAtivos: number;
   expirados: number;
@@ -16,7 +37,28 @@ export interface SdrDashboardStats {
   recuperadosEsteMes: number;
   contatosHoje: number;
   totalEmpresas: number;
+  todos?: number;
   recuperacao?: SdrRecuperacaoStats;
+  segmentos?: Record<string, number>;
+  funil?: SdrFunilStats;
+}
+
+export type StatusAlcance =
+  | 'nao_enviado'
+  | 'pendente'
+  | 'enviado'
+  | 'entregue'
+  | 'lido'
+  | 'respondeu'
+  | 'falha';
+
+export interface SdrLeadAlcance {
+  status: StatusAlcance;
+  enviadoEm: string | null;
+  entregueEm: string | null;
+  lidoEm: string | null;
+  respondeuEm: string | null;
+  falha: string | null;
 }
 
 export interface SdrLeadAssinatura {
@@ -81,6 +123,8 @@ export interface SdrLead {
   recuperacao: SdrLeadRecuperacao | null;
   suspenso_em: string | null;
   trial_estendido_em: string | null;
+  segmento?: SegmentoLead | 'novos';
+  alcance?: SdrLeadAlcance;
 }
 
 export interface WinbackCandidato {
@@ -91,6 +135,42 @@ export interface WinbackCandidato {
   segmento: SegmentoLead;
   assinaturaStatus: string | null;
   acessoFim: string | null;
+}
+
+export interface WinbackDestinatario {
+  id: string;
+  empresaId: string | null;
+  telefone: string;
+  nomeDestinatario: string | null;
+  nomeEmpresa: string | null;
+  status: string;
+  erro: string | null;
+  enviadoEm: string | null;
+  ack_code: number | null;
+  entregueEm: string | null;
+  lidoEm: string | null;
+  falhaEntrega: string | null;
+  respondeuEm: string | null;
+  alcance: StatusAlcance;
+}
+
+export interface WinbackCampanhaResumo {
+  id: string;
+  mensagem: string;
+  templateName: string | null;
+  status: string;
+  total: number;
+  enviados: number;
+  falhas: number;
+  createdAt: string;
+  entregues: number;
+  lidos: number;
+  respondidos: number;
+  naoEntregues: number;
+}
+
+export interface WinbackCampanhaDetalhe extends WinbackCampanhaResumo {
+  destinatarios: WinbackDestinatario[];
 }
 
 export interface SdrTrackingEntry {
@@ -105,8 +185,17 @@ export interface SdrTrackingEntry {
 }
 
 class SdrServiceApi {
-  async getDashboardStats(): Promise<SdrDashboardStats> {
-    return apiService.get<SdrDashboardStats>('/sdr/dashboard-stats');
+  async getDashboardStats(params?: {
+    segmento?: string;
+    dataInicio?: string;
+    dataFim?: string;
+  }): Promise<SdrDashboardStats> {
+    const query = new URLSearchParams();
+    if (params?.segmento) query.set('segmento', params.segmento);
+    if (params?.dataInicio) query.set('dataInicio', params.dataInicio);
+    if (params?.dataFim) query.set('dataFim', params.dataFim);
+    const qs = query.toString();
+    return apiService.get<SdrDashboardStats>(`/sdr/dashboard-stats${qs ? `?${qs}` : ''}`);
   }
 
   async getLeads(params: {
@@ -116,6 +205,10 @@ class SdrServiceApi {
     subscriptionStatus?: string;
     sdrStatus?: string;
     recuperacaoStatus?: string;
+    segmento?: string;
+    dataInicio?: string;
+    dataFim?: string;
+    alcance?: string;
     sortOrder?: 'asc' | 'desc';
   }): Promise<{ data: SdrLead[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> {
     const query = new URLSearchParams();
@@ -125,6 +218,10 @@ class SdrServiceApi {
     if (params.subscriptionStatus) query.set('subscriptionStatus', params.subscriptionStatus);
     if (params.sdrStatus) query.set('sdrStatus', params.sdrStatus);
     if (params.recuperacaoStatus) query.set('recuperacaoStatus', params.recuperacaoStatus);
+    if (params.segmento) query.set('segmento', params.segmento);
+    if (params.dataInicio) query.set('dataInicio', params.dataInicio);
+    if (params.dataFim) query.set('dataFim', params.dataFim);
+    if (params.alcance) query.set('alcance', params.alcance);
     if (params.sortOrder) query.set('sortOrder', params.sortOrder);
     return apiService.get(`/sdr/leads?${query.toString()}`);
   }
@@ -154,15 +251,28 @@ class SdrServiceApi {
   // ---- Régua de recuperação ----
 
   /** Prévia da base histórica elegível a um segmento (trilha winback). */
-  async getWinbackCandidatos(segmento: SegmentoLead, limit = 50): Promise<WinbackCandidato[]> {
-    return apiService.get<WinbackCandidato[]>(
-      `/recuperacao/winback/candidatos?segmento=${segmento}&limit=${limit}`,
-    );
+  async getWinbackCandidatos(
+    segmento: SegmentoLead,
+    limit = 50,
+    datas?: { dataInicio?: string; dataFim?: string },
+  ): Promise<WinbackCandidato[]> {
+    const query = new URLSearchParams({ segmento, limit: String(limit) });
+    if (datas?.dataInicio) query.set('dataInicio', datas.dataInicio);
+    if (datas?.dataFim) query.set('dataFim', datas.dataFim);
+    return apiService.get<WinbackCandidato[]>(`/recuperacao/winback/candidatos?${query.toString()}`);
   }
 
   /** Enfileira a campanha. O envio é do dispatcher — respeita janela e ritmo. */
   async dispararWinback(segmento: SegmentoLead, empresaIds: string[]): Promise<{ notificacaoId: string; total: number }> {
     return apiService.post('/recuperacao/winback/disparar', { segmento, empresaIds });
+  }
+
+  async getCampanhasWinback(limit = 10): Promise<WinbackCampanhaResumo[]> {
+    return apiService.get(`/recuperacao/winback/campanhas?limit=${limit}`);
+  }
+
+  async getCampanhaWinback(id: string): Promise<WinbackCampanhaDetalhe> {
+    return apiService.get(`/recuperacao/winback/campanhas/${id}`);
   }
 
   async estenderAcesso(empresaId: string, dias?: number): Promise<any> {
