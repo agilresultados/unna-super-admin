@@ -8,6 +8,14 @@ import {
   RecebimentoOnlineConfig,
 } from '@/services/recebimento-online.service';
 
+/** Texto cru do textarea -> lista de e-mails. Só roda no salvar, nunca a cada tecla. */
+function parseEmails(texto: string): string[] {
+  return texto
+    .split('\n')
+    .map((em) => em.trim())
+    .filter(Boolean);
+}
+
 /**
  * Quem pode RECEBER pagamento online — o Pix que o cliente final paga direto na
  * conta do Mercado Pago do salão.
@@ -17,12 +25,18 @@ import {
  */
 export default function RecebimentoOnlineCard() {
   const [config, setConfig] = useState<RecebimentoOnlineConfig | null>(null);
+  // O textarea guarda o texto cru: se derivarmos o value da lista já filtrada,
+  // a linha vazia recém-criada some no mesmo render e o Enter não funciona.
+  const [emailsTexto, setEmailsTexto] = useState('');
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
     recebimentoOnlineService
       .getConfig()
-      .then(setConfig)
+      .then((cfg) => {
+        setConfig(cfg);
+        setEmailsTexto(cfg.emails_liberados.join('\n'));
+      })
       .catch(() => toast.error('Não foi possível carregar a liberação de recebimento online.'));
   }, []);
 
@@ -30,7 +44,12 @@ export default function RecebimentoOnlineCard() {
     if (!config) return;
     setSalvando(true);
     try {
-      setConfig(await recebimentoOnlineService.updateConfig(config));
+      const salvo = await recebimentoOnlineService.updateConfig({
+        ...config,
+        emails_liberados: parseEmails(emailsTexto),
+      });
+      setConfig(salvo);
+      setEmailsTexto(salvo.emails_liberados.join('\n'));
       toast.success('Liberação de recebimento online salva.');
     } catch (erro: any) {
       toast.error(erro?.message || 'Erro ao salvar a liberação.');
@@ -41,7 +60,7 @@ export default function RecebimentoOnlineCard() {
 
   if (!config) return null;
 
-  const ninguemLiberado = !config.liberado_para_todos && config.emails_liberados.length === 0;
+  const ninguemLiberado = !config.liberado_para_todos && parseEmails(emailsTexto).length === 0;
 
   return (
     <Card className="bg-white dark:bg-gray-800">
@@ -83,16 +102,8 @@ export default function RecebimentoOnlineCard() {
                 Contas liberadas (um e-mail por linha)
               </label>
               <textarea
-                value={config.emails_liberados.join('\n')}
-                onChange={(e) =>
-                  setConfig({
-                    ...config,
-                    emails_liberados: e.target.value
-                      .split('\n')
-                      .map((em) => em.trim())
-                      .filter(Boolean),
-                  })
-                }
+                value={emailsTexto}
+                onChange={(e) => setEmailsTexto(e.target.value)}
                 className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm min-h-[100px] font-mono"
                 placeholder="dona@salao.com&#10;outra@salao.com"
               />
