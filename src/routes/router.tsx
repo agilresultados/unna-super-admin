@@ -7,6 +7,7 @@ import SuperAdminDashboard from '@/pages/SuperAdminDashboard'
 import Empresas from '@/pages/Empresas'
 import Planos from '@/pages/Planos'
 import Assinaturas from '@/pages/Assinaturas'
+import Reajustes from '@/pages/Reajustes'
 import Usuarios from '@/pages/Usuarios'
 import Clientes from '@/pages/Clientes'
 import Relatorios from '@/pages/Relatorios'
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
           { path: 'empresas', element: <Empresas /> },
           { path: 'planos', element: <Planos /> },
           { path: 'assinaturas', element: <Assinaturas /> },
+          { path: 'reajustes', element: <Reajustes /> },
           { path: 'subcontas', element: <Subcontas /> },
           { path: 'usuarios', element: <Usuarios /> },
           { path: 'clientes', element: <Clientes /> },
