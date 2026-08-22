@@ -137,6 +137,15 @@ export interface WinbackCandidato {
   acessoFim: string | null;
 }
 
+export interface PreviaWinback {
+  /** Elegíveis no segmento inteiro, independente do `limit` pedido. */
+  total: number;
+  /** Início da fatia devolvida. */
+  offset: number;
+  /** Lote atual, do contato mais recente para o mais antigo. */
+  candidatos: WinbackCandidato[];
+}
+
 export interface WinbackDestinatario {
   id: string;
   empresaId: string | null;
@@ -255,11 +264,12 @@ class SdrServiceApi {
     segmento: SegmentoLead,
     limit = 50,
     datas?: { dataInicio?: string; dataFim?: string },
-  ): Promise<WinbackCandidato[]> {
-    const query = new URLSearchParams({ segmento, limit: String(limit) });
+    offset = 0,
+  ): Promise<PreviaWinback> {
+    const query = new URLSearchParams({ segmento, limit: String(limit), offset: String(offset) });
     if (datas?.dataInicio) query.set('dataInicio', datas.dataInicio);
     if (datas?.dataFim) query.set('dataFim', datas.dataFim);
-    return apiService.get<WinbackCandidato[]>(`/recuperacao/winback/candidatos?${query.toString()}`);
+    return apiService.get<PreviaWinback>(`/recuperacao/winback/candidatos?${query.toString()}`);
   }
 
   /** Enfileira a campanha. O envio é do dispatcher — respeita janela e ritmo. */

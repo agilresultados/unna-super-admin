@@ -21,6 +21,7 @@ import WorkerMonitoring from '@/pages/WorkerMonitoring'
 import Marketing from '@/pages/Marketing'
 import Atribuicao from '@/pages/Atribuicao'
 import SdrPanel from '@/pages/SdrPanel'
+import SdrWinback from '@/pages/SdrWinback'
 import Subcontas from '@/pages/Subcontas'
 import Atendimento from '@/pages/Atendimento'
 
@@ -54,6 +55,7 @@ export const router = createBrowserRouter([
           { path: 'marketing', element: <Marketing /> },
           { path: 'atribuicao', element: <Atribuicao /> },
           { path: 'sdr', element: <SdrPanel /> },
+          { path: 'sdr/winback', element: <SdrWinback /> },
         ],
       },
     ],
