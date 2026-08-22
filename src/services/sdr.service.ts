@@ -160,7 +160,16 @@ export interface WinbackDestinatario {
   lidoEm: string | null;
   falhaEntrega: string | null;
   respondeuEm: string | null;
+  /** Texto da primeira resposta (ou rótulo do botão clicado). */
+  respostaTexto: string | null;
+  respostas: WinbackRespostaInbound[];
   alcance: StatusAlcance;
+}
+
+export interface WinbackRespostaInbound {
+  em: string;
+  texto: string | null;
+  tipo: string;
 }
 
 export interface WinbackCampanhaResumo {

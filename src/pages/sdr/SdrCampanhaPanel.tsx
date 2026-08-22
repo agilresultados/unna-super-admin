@@ -236,19 +236,43 @@ const SdrCampanhaPanel: React.FC<SdrCampanhaPanelProps> = ({ focusId, focusNonce
                           : v === 'entregue'
                             ? formatHora(d.entregueEm)
                             : '';
+                      const respostas = d.respostas?.length
+                        ? d.respostas
+                        : d.respostaTexto
+                          ? [{ em: d.respondeuEm || '', texto: d.respostaTexto, tipo: 'text' }]
+                          : [];
                       return (
-                        <div key={d.id} className="flex items-center gap-3 px-3 py-2">
-                          <DestStatusIcon d={d} />
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                              {d.nomeEmpresa || d.nomeDestinatario || '—'}
+                        <div key={d.id} className="px-3 py-2">
+                          <div className="flex items-center gap-3">
+                            <DestStatusIcon d={d} />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {d.nomeEmpresa || d.nomeDestinatario || '—'}
+                              </div>
+                              <div className="text-[10px] text-gray-500 truncate">{d.telefone}</div>
                             </div>
-                            <div className="text-[10px] text-gray-500 truncate">{d.telefone}</div>
+                            {hora && (
+                              <span className={`text-[10px] shrink-0 ${v === 'respondeu' ? 'text-purple-600' : 'text-gray-400'}`}>
+                                {hora}
+                              </span>
+                            )}
                           </div>
-                          {hora && (
-                            <span className={`text-[10px] shrink-0 ${v === 'respondeu' ? 'text-purple-600' : 'text-gray-400'}`}>
-                              {hora}
-                            </span>
+                          {respostas.length > 0 && (
+                            <div className="mt-1 ml-7 space-y-1">
+                              {respostas.map((r, i) => (
+                                <div
+                                  key={`${d.id}-${i}`}
+                                  className="rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-900/40 px-2 py-1"
+                                >
+                                  <p className="text-[11px] text-purple-900 dark:text-purple-100 whitespace-pre-wrap break-words">
+                                    {r.texto || '(sem texto)'}
+                                  </p>
+                                  {r.em && (
+                                    <p className="text-[9px] text-purple-400 mt-0.5">{formatHora(r.em)}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
                       );
