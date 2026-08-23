@@ -1,629 +1,117 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import React, { useEffect, useState } from 'react'
+import { AlertTriangle, Building2, CheckCircle2, Clock3, Loader2, RefreshCw, Wallet } from 'lucide-react'
+import Button from '@/components/ui/Button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
-    Wallet,
-    ShieldCheck,
-    ShieldAlert,
-    Loader2,
-    Percent,
-    RefreshCw,
-    Ban,
-    Play,
-    AlertTriangle,
-} from 'lucide-react';
-import {
-    unnaPayAdminService,
-    ROTULO_STATUS_SUBCONTA,
-    type SubcontaResumo,
-    type SubcontaDossie,
-    type UnnaPayConfig,
-    type EmpresaPiloto,
-    type StatusSubconta,
-} from '@/services/unna-pay.service';
-import { empresaService } from '@/services/empresa.service';
+  unnaPayAdminService,
+  type SubcontaResumo,
+} from '@/services/unna-pay.service'
 
-const FILTROS = [
-    { valor: 'solicitado', rotulo: 'Aguardando análise' },
-    { valor: 'em_analise_asaas', rotulo: 'Em análise (Asaas)' },
-    { valor: 'aprovado', rotulo: 'Ativas' },
-    { valor: 'rejeitado_unna', rotulo: 'Recusadas' },
-    { valor: 'desabilitado', rotulo: 'Desabilitadas' },
-    { valor: '', rotulo: 'Todas' },
-];
+const STATUS_CLASSES: Record<string, string> = {
+  solicitado: 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+  em_analise: 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+  em_analise_asaas: 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+  criando_conta: 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+  ativo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  aprovado: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  rejeitado: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+  rejeitado_unna: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+  rejeitado_asaas: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+  desabilitado: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+}
 
-/**
- * Fila de análise das subcontas do Unna Pay.
- *
- * Aprovar aqui CRIA a conta no Asaas e é irreversível: a apiKey vem uma única
- * vez e não há como apagar uma subconta. Por isso a ação pede confirmação
- * explícita e o dossiê mostra os dados antes.
- */
+const formatarData = (data?: string | null) => {
+  if (!data) return '-'
+  const valor = new Date(data)
+  return Number.isNaN(valor.getTime()) ? '-' : valor.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+const nomeEmpresa = (subconta: SubcontaResumo) =>
+  subconta.empresa?.nome_negocio || subconta.nome_empresa || 'Empresa não identificada'
+
+const emailEmpresa = (subconta: SubcontaResumo) =>
+  subconta.empresa?.email || subconta.email || '-'
+
 export default function Subcontas() {
-    const [filtro, setFiltro] = useState('solicitado');
-    const [lista, setLista] = useState<SubcontaResumo[]>([]);
-    const [carregando, setCarregando] = useState(true);
-    const [dossie, setDossie] = useState<SubcontaDossie | null>(null);
-    const [agindo, setAgindo] = useState(false);
-    const [config, setConfig] = useState<UnnaPayConfig | null>(null);
-    const [erro, setErro] = useState<string | null>(null);
+  const [lista, setLista] = useState<SubcontaResumo[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
+  const [aprovandoId, setAprovandoId] = useState<string | null>(null)
 
-    useEffect(() => { carregar(); }, [filtro]);
-    useEffect(() => { carregarConfig(); }, []);
+  const carregar = async () => {
+    try {
+      setCarregando(true)
+      setErro(null)
+      setLista(await unnaPayAdminService.listar())
+    } catch (error: any) {
+      setErro(error?.message || 'Não foi possível carregar as solicitações.')
+    } finally {
+      setCarregando(false)
+    }
+  }
 
-    const carregar = async () => {
-        try {
-            setCarregando(true);
-            setErro(null);
-            setLista(await unnaPayAdminService.listar(filtro || undefined));
-        } catch (e: any) {
-            setErro(e?.message || 'Erro ao carregar subcontas');
-        } finally {
-            setCarregando(false);
-        }
-    };
+  useEffect(() => {
+    carregar()
+  }, [])
 
-    const carregarConfig = async () => {
-        try {
-            setConfig(await unnaPayAdminService.getConfig());
-        } catch {
-            // Config indisponível não impede analisar a fila.
-        }
-    };
+  const aprovar = async (empresaId: string) => {
+    try {
+      setAprovandoId(empresaId)
+      const atualizada = await unnaPayAdminService.aprovar(empresaId)
+      setLista((atuais) => atuais.map((item) => item.empresaId === empresaId ? { ...item, ...atualizada, empresaId } : item))
+    } catch (error: any) {
+      setErro(error?.message || 'Não foi possível aprovar a solicitação.')
+    } finally {
+      setAprovandoId(null)
+    }
+  }
 
-    const abrirDossie = async (empresaId: string) => {
-        try {
-            setDossie(await unnaPayAdminService.getDossie(empresaId));
-        } catch (e: any) {
-            setErro(e?.message || 'Erro ao carregar o dossiê');
-        }
-    };
-
-    const aprovar = async (empresaId: string, nome?: string) => {
-        const ok = window.confirm(
-            `Aprovar a conta de recebimento de "${nome || empresaId}"?\n\n` +
-            'Isto CRIA uma conta no Asaas. A credencial é devolvida uma única vez e ' +
-            'a conta não pode ser apagada depois. Confirme só se os dados estiverem certos.',
-        );
-        if (!ok) return;
-
-        try {
-            setAgindo(true);
-            setErro(null);
-            const atualizado = await unnaPayAdminService.aprovar(empresaId);
-            setDossie(atualizado);
-            await carregar();
-        } catch (e: any) {
-            setErro(e?.message || 'Falha ao aprovar');
-        } finally {
-            setAgindo(false);
-        }
-    };
-
-    const rejeitar = async (empresaId: string) => {
-        const motivo = window.prompt('Motivo da recusa (a empresa vai ler isto):');
-        if (!motivo?.trim()) return;
-
-        try {
-            setAgindo(true);
-            setDossie(await unnaPayAdminService.rejeitar(empresaId, motivo.trim()));
-            await carregar();
-        } catch (e: any) {
-            setErro(e?.message || 'Falha ao recusar');
-        } finally {
-            setAgindo(false);
-        }
-    };
-
-    const alternarHabilitacao = async (sub: SubcontaDossie) => {
-        try {
-            setAgindo(true);
-            if (sub.status === 'desabilitado') {
-                setDossie(await unnaPayAdminService.reabilitar(sub.empresaId));
-            } else {
-                const motivo = window.prompt('Motivo da desabilitação (opcional):') || undefined;
-                setDossie(await unnaPayAdminService.desabilitar(sub.empresaId, motivo));
-            }
-            await carregar();
-        } catch (e: any) {
-            setErro(e?.message || 'Falha ao alterar a habilitação');
-        } finally {
-            setAgindo(false);
-        }
-    };
-
-    const definirTaxa = async (empresaId: string, atual?: number | null) => {
-        const entrada = window.prompt(
-            'Taxa da Unna para esta empresa (%). Deixe vazio para usar a taxa global.',
-            atual != null ? String(atual) : '',
-        );
-        if (entrada === null) return;
-
-        try {
-            setAgindo(true);
-            const taxa = entrada.trim() === '' ? null : Number(entrada.replace(',', '.'));
-            setDossie(await unnaPayAdminService.definirTaxa(empresaId, taxa));
-            await carregar();
-        } catch (e: any) {
-            setErro(e?.message || 'Falha ao definir a taxa');
-        } finally {
-            setAgindo(false);
-        }
-    };
-
-    const reprovisionar = async (empresaId: string) => {
-        try {
-            setAgindo(true);
-            await unnaPayAdminService.reprovisionarWebhook(empresaId);
-            setDossie(await unnaPayAdminService.getDossie(empresaId));
-        } catch (e: any) {
-            setErro(e?.message || 'Falha ao reprovisionar o webhook');
-        } finally {
-            setAgindo(false);
-        }
-    };
-
-    const salvarConfig = async (patch: Partial<UnnaPayConfig>) => {
-        try {
-            setConfig(await unnaPayAdminService.updateConfig(patch));
-        } catch (e: any) {
-            setErro(e?.message || 'Falha ao salvar a configuração');
-        }
-    };
-
-    return (
-        <div className="p-4 md:p-6 space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <Wallet className="w-6 h-6" />
-                    Unna Pay — Subcontas
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                    Empresas recebendo do cliente final. Aprovar cria a conta no Asaas e guarda a
-                    credencial cifrada — ação irreversível.
-                </p>
-            </div>
-
-            {erro && (
-                <div className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-300">
-                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                    <span>{erro}</span>
-                </div>
-            )}
-
-            {config && (
-                <Card>
-                    <CardContent className="flex flex-wrap items-end gap-6 py-4">
-                        <label className="flex items-center gap-2 text-sm">
-                            <input
-                                type="checkbox"
-                                className="w-4 h-4"
-                                checked={config.habilitado}
-                                onChange={(e) => salvarConfig({ habilitado: e.target.checked })}
-                            />
-                            <span>
-                                <strong>Unna Pay ativo</strong>
-                                <span className="block text-xs text-muted-foreground">
-                                    Desligar corta a emissão de cobrança em toda a base.
-                                </span>
-                            </span>
-                        </label>
-
-                        <div>
-                            <label className="block text-xs text-muted-foreground mb-1">
-                                Taxa padrão (%)
-                            </label>
-                            <div className="flex gap-2">
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    max={100}
-                                    step="0.01"
-                                    className="w-28"
-                                    defaultValue={config.taxa_percentual_padrao}
-                                    onBlur={(e: any) =>
-                                        salvarConfig({ taxa_percentual_padrao: Number(e.target.value) })
-                                    }
-                                />
-                                <Percent className="w-4 h-4 self-center text-muted-foreground" />
-                            </div>
-                        </div>
-
-                        <label className="flex items-center gap-2 text-sm">
-                            <input
-                                type="checkbox"
-                                className="w-4 h-4"
-                                checked={config.piloto_habilitado}
-                                onChange={(e) => salvarConfig({ piloto_habilitado: e.target.checked })}
-                            />
-                            <span>
-                                <strong>Piloto (allowlist)</strong>
-                                <span className="block text-xs text-muted-foreground">
-                                    Desligar libera a opção no painel de TODAS as empresas.
-                                </span>
-                            </span>
-                        </label>
-                    </CardContent>
-                </Card>
-            )}
-
-            {config?.piloto_habilitado && (
-                <PainelPiloto onErro={setErro} />
-            )}
-
-            <div className="flex flex-wrap gap-2">
-                {FILTROS.map((f) => (
-                    <button
-                        key={f.valor || 'todas'}
-                        onClick={() => setFiltro(f.valor)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${filtro === f.valor
-                                ? 'bg-primary text-white border-primary'
-                                : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
-                            }`}
-                    >
-                        {f.rotulo}
-                    </button>
-                ))}
-                <Button variant="outline" onClick={carregar} className="ml-auto">
-                    <RefreshCw className={`w-4 h-4 mr-2 ${carregando ? 'animate-spin' : ''}`} />
-                    Atualizar
-                </Button>
-            </div>
-
-            {carregando ? (
-                <div className="flex justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                </div>
-            ) : lista.length === 0 ? (
-                <Card>
-                    <CardContent className="py-12 text-center text-muted-foreground">
-                        Nenhuma subconta neste filtro.
-                    </CardContent>
-                </Card>
-            ) : (
-                <div className="grid gap-3">
-                    {lista.map((sub) => (
-                        <Card key={sub.id}>
-                            <CardContent className="flex flex-wrap items-center gap-4 py-4">
-                                <div className="flex-1 min-w-[200px]">
-                                    <p className="font-medium">{sub.empresa?.nome_negocio || sub.empresaId}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {sub.empresa?.email || 'sem e-mail'}
-                                        {sub.solicitado_em &&
-                                            ` · solicitado em ${new Date(sub.solicitado_em).toLocaleDateString('pt-BR')}`}
-                                    </p>
-                                </div>
-
-                                <BadgeStatus status={sub.status} />
-
-                                <div className="flex gap-2">
-                                    <Button variant="outline" onClick={() => abrirDossie(sub.empresaId)}>
-                                        Ver dossiê
-                                    </Button>
-                                    {sub.status === 'solicitado' && (
-                                        <>
-                                            <Button
-                                                onClick={() => aprovar(sub.empresaId, sub.empresa?.nome_negocio)}
-                                                disabled={agindo}
-                                            >
-                                                <ShieldCheck className="w-4 h-4 mr-1" />
-                                                Aprovar
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => rejeitar(sub.empresaId)}
-                                                disabled={agindo}
-                                            >
-                                                <ShieldAlert className="w-4 h-4 mr-1" />
-                                                Recusar
-                                            </Button>
-                                        </>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            )}
-
-            {dossie && (
-                <ModalDossie
-                    dossie={dossie}
-                    agindo={agindo}
-                    onFechar={() => setDossie(null)}
-                    onAprovar={() => aprovar(dossie.empresaId, dossie.empresa?.nome_negocio)}
-                    onRejeitar={() => rejeitar(dossie.empresaId)}
-                    onAlternar={() => alternarHabilitacao(dossie)}
-                    onTaxa={() => definirTaxa(dossie.empresaId, dossie.taxa_percentual)}
-                    onReprovisionar={() => reprovisionar(dossie.empresaId)}
-                />
-            )}
-        </div>
-    );
-}
-
-function BadgeStatus({ status }: { status: string }) {
-    const tons: Record<string, string> = {
-        aprovado: 'bg-green-100 text-green-700',
-        solicitado: 'bg-amber-100 text-amber-700',
-        em_analise_asaas: 'bg-blue-100 text-blue-700',
-        criando_conta: 'bg-blue-100 text-blue-700',
-        rejeitado_unna: 'bg-red-100 text-red-700',
-        rejeitado_asaas: 'bg-red-100 text-red-700',
-        desabilitado: 'bg-gray-200 text-gray-700',
-    };
-
-    return (
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${tons[status] || 'bg-gray-100 text-gray-600'}`}>
-            {ROTULO_STATUS_SUBCONTA[status as keyof typeof ROTULO_STATUS_SUBCONTA] || status}
-        </span>
-    );
-}
-
-function ModalDossie({
-    dossie,
-    agindo,
-    onFechar,
-    onAprovar,
-    onRejeitar,
-    onAlternar,
-    onTaxa,
-    onReprovisionar,
-}: {
-    dossie: SubcontaDossie;
-    agindo: boolean;
-    onFechar: () => void;
-    onAprovar: () => void;
-    onRejeitar: () => void;
-    onAlternar: () => void;
-    onTaxa: () => void;
-    onReprovisionar: () => void;
-}) {
-    const kyc = dossie.dados_kyc || {};
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white dark:bg-gray-900 shadow-xl">
-                <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 p-4">
-                    <div>
-                        <h3 className="font-semibold">{dossie.empresa?.nome_negocio || dossie.empresaId}</h3>
-                        <BadgeStatus status={dossie.status} />
-                    </div>
-                    <Button variant="outline" onClick={onFechar}>Fechar</Button>
-                </div>
-
-                <div className="p-5 space-y-5">
-                    <Secao titulo="Dados do titular">
-                        <Linha rotulo="Nome / razão social" valor={kyc.nome_titular} />
-                        <Linha rotulo="CPF / CNPJ" valor={kyc.cpf_cnpj} />
-                        <Linha rotulo="E-mail" valor={kyc.email} />
-                        <Linha rotulo="Celular" valor={kyc.telefone_celular} />
-                        <Linha rotulo="Nascimento" valor={kyc.data_nascimento} />
-                        <Linha rotulo="Tipo de empresa" valor={kyc.tipo_empresa} />
-                        <Linha
-                            rotulo="Faturamento estimado"
-                            valor={kyc.faturamento_mensal ? `R$ ${Number(kyc.faturamento_mensal).toFixed(2)}` : null}
-                        />
-                        <Linha
-                            rotulo="Endereço"
-                            valor={
-                                kyc.logradouro
-                                    ? `${kyc.logradouro}, ${kyc.numero} — ${kyc.bairro} · ${kyc.cep}`
-                                    : null
-                            }
-                        />
-                    </Secao>
-
-                    <Secao titulo="Conta no Asaas">
-                        <Linha rotulo="Account ID" valor={dossie.asaas_account_id} />
-                        <Linha rotulo="Wallet" valor={dossie.asaas_wallet_id} />
-                        <Linha
-                            rotulo="Credencial guardada"
-                            valor={dossie.credencial_armazenada ? `sim (····${dossie.api_key_last4 || '????'})` : 'não'}
-                        />
-                        <Linha rotulo="Webhook" valor={dossie.webhook_configurado ? 'configurado' : 'não configurado'} />
-                        <Linha rotulo="Análise comercial" valor={dossie.status_comercial} />
-                        <Linha rotulo="Documentação" valor={dossie.status_documentacao} />
-                        <Linha rotulo="Conta bancária" valor={dossie.status_conta_bancaria} />
-                        <Linha
-                            rotulo="Taxa da Unna"
-                            valor={dossie.taxa_percentual != null ? `${dossie.taxa_percentual}%` : 'taxa global'}
-                        />
-                    </Secao>
-
-                    {(dossie.motivo_rejeicao || dossie.motivo_pendencia) && (
-                        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-                            {dossie.motivo_rejeicao || dossie.motivo_pendencia}
-                        </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-                        {dossie.status === 'solicitado' && (
-                            <>
-                                <Button onClick={onAprovar} disabled={agindo}>
-                                    <ShieldCheck className="w-4 h-4 mr-1" />
-                                    Aprovar e criar conta
-                                </Button>
-                                <Button variant="outline" onClick={onRejeitar} disabled={agindo}>
-                                    Recusar
-                                </Button>
-                            </>
-                        )}
-
-                        {dossie.asaas_account_id && (
-                            <>
-                                <Button variant="outline" onClick={onTaxa} disabled={agindo}>
-                                    <Percent className="w-4 h-4 mr-1" />
-                                    Definir taxa
-                                </Button>
-                                <Button variant="outline" onClick={onReprovisionar} disabled={agindo}>
-                                    <RefreshCw className="w-4 h-4 mr-1" />
-                                    Reprovisionar webhook
-                                </Button>
-                                <Button variant="outline" onClick={onAlternar} disabled={agindo}>
-                                    {dossie.status === 'desabilitado' ? (
-                                        <><Play className="w-4 h-4 mr-1" />Reabilitar</>
-                                    ) : (
-                                        <><Ban className="w-4 h-4 mr-1" />Desabilitar</>
-                                    )}
-                                </Button>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-    return (
+  return (
+    <div className="p-4 md:p-6 space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-            <h4 className="text-sm font-semibold mb-2">{titulo}</h4>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">{children}</dl>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><Wallet className="w-6 h-6" /> Unna Pay</h1>
+          <p className="text-sm text-muted-foreground mt-1">Solicitações de subconta para recebimento online.</p>
         </div>
-    );
-}
+        <Button type="button" variant="outline" size="sm" onClick={carregar} disabled={carregando} className="gap-2 self-start sm:self-auto">
+          <RefreshCw className={`w-4 h-4 ${carregando ? 'animate-spin' : ''}`} /> Atualizar
+        </Button>
+      </div>
 
-function Linha({ rotulo, valor }: { rotulo: string; valor?: string | null }) {
-    if (!valor) return null;
-    return (
-        <div className="flex justify-between gap-3 text-sm py-0.5">
-            <dt className="text-muted-foreground">{rotulo}</dt>
-            <dd className="font-medium text-right break-all">{valor}</dd>
+      {erro && <div className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-300"><AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />{erro}</div>}
+
+      <Card className="overflow-hidden py-0">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px] text-left border-collapse">
+            <thead>
+              <tr className="bg-muted/40 border-b text-[11px] uppercase tracking-wider text-muted-foreground font-bold">
+                <th className="px-4 py-3">Empresa</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Solicitado em</th>
+                <th className="px-4 py-3">Atualizado em</th>
+                <th className="px-4 py-3">Pendência</th>
+                <th className="px-4 py-3 text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border text-sm">
+              {carregando ? (
+                <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground"><span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Carregando solicitações...</span></td></tr>
+              ) : lista.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">Nenhuma solicitação encontrada.</td></tr>
+              ) : lista.map((subconta) => (
+                <tr key={subconta.empresaId} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3"><div className="flex items-center gap-2"><Building2 className="w-4 h-4 text-muted-foreground shrink-0" /><div><p className="font-semibold">{nomeEmpresa(subconta)}</p><p className="text-xs text-muted-foreground">{emailEmpresa(subconta)}</p></div></div></td>
+                  <td className="px-4 py-3"><span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${STATUS_CLASSES[subconta.status] || 'bg-slate-100 text-slate-700'}`}>{subconta.status.replace(/_/g, ' ')}</span></td>
+                  <td className="px-4 py-3 text-muted-foreground"><span className="inline-flex items-center gap-1.5"><Clock3 className="w-3.5 h-3.5" />{formatarData(subconta.solicitado_em || subconta.createdAt)}</span></td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatarData(subconta.analisado_em || subconta.updatedAt)}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground max-w-xs"><span className="line-clamp-2">{subconta.motivo_pendencia || '-'}</span></td>
+                  <td className="px-4 py-3 text-right">{subconta.status === 'solicitado' && <Button type="button" size="sm" onClick={() => aprovar(subconta.empresaId)} disabled={aprovandoId === subconta.empresaId} className="gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" />{aprovandoId === subconta.empresaId ? 'Aprovando...' : 'Aprovar'}</Button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-    );
-}
-
-/**
- * Quem enxerga "Receber pagamentos online" no painel.
- *
- * Gate de VISIBILIDADE, não de cobrança: remover daqui só some com a opção da
- * tela dela. Quem já foi aprovado continua recebendo normalmente — para cortar
- * isso existe o "Desabilitar" no dossiê.
- */
-function PainelPiloto({ onErro }: { onErro: (e: string | null) => void }) {
-    const [piloto, setPiloto] = useState<EmpresaPiloto[]>([]);
-    const [termo, setTermo] = useState('');
-    const [resultados, setResultados] = useState<Array<{ id: string; nome_negocio: string; email?: string | null }>>([]);
-    const [buscando, setBuscando] = useState(false);
-    const [salvando, setSalvando] = useState(false);
-
-    useEffect(() => { carregar(); }, []);
-
-    const carregar = async () => {
-        try {
-            setPiloto((await unnaPayAdminService.listarPiloto()).empresas);
-        } catch (e: any) {
-            onErro(e?.message || 'Erro ao carregar o piloto');
-        }
-    };
-
-    const buscar = async () => {
-        if (termo.trim().length < 3) {
-            onErro('Digite ao menos 3 letras do nome da empresa.');
-            return;
-        }
-        try {
-            setBuscando(true);
-            onErro(null);
-            const r = await empresaService.getEmpresas({ search: termo.trim(), limit: 8 } as any);
-            // Já no piloto não volta na lista: evita o clique que não faz nada.
-            const jaNoPiloto = new Set(piloto.map((p) => p.empresaId));
-            setResultados((r.data || []).filter((e: any) => !jaNoPiloto.has(e.id)));
-        } catch (e: any) {
-            onErro(e?.message || 'Erro ao buscar empresas');
-        } finally {
-            setBuscando(false);
-        }
-    };
-
-    const adicionar = async (empresaId: string) => {
-        try {
-            setSalvando(true);
-            setPiloto((await unnaPayAdminService.adicionarAoPiloto(empresaId)).empresas);
-            setResultados((r) => r.filter((e) => e.id !== empresaId));
-        } catch (e: any) {
-            onErro(e?.message || 'Erro ao adicionar');
-        } finally {
-            setSalvando(false);
-        }
-    };
-
-    const remover = async (empresaId: string, nome: string) => {
-        if (!window.confirm(`Remover "${nome}" do piloto?\n\nA opção some do painel dela. Se já estiver aprovada, continua recebendo normalmente.`)) return;
-        try {
-            setSalvando(true);
-            setPiloto((await unnaPayAdminService.removerDoPiloto(empresaId)).empresas);
-        } catch (e: any) {
-            onErro(e?.message || 'Erro ao remover');
-        } finally {
-            setSalvando(false);
-        }
-    };
-
-    return (
-        <Card>
-            <CardContent className="py-4 space-y-4">
-                <div>
-                    <h3 className="text-sm font-semibold">Empresas com acesso ao recebimento online</h3>
-                    <p className="text-xs text-muted-foreground">
-                        Só estas veem a opção em Taxas / Comissões e conseguem solicitar a subconta.
-                    </p>
-                </div>
-
-                <div className="flex gap-2">
-                    <Input
-                        placeholder="Buscar empresa pelo nome..."
-                        value={termo}
-                        onChange={(e: any) => setTermo(e.target.value)}
-                        onKeyDown={(e: any) => e.key === 'Enter' && buscar()}
-                    />
-                    <Button variant="outline" onClick={buscar} disabled={buscando}>
-                        {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buscar'}
-                    </Button>
-                </div>
-
-                {resultados.length > 0 && (
-                    <div className="rounded-lg border divide-y">
-                        {resultados.map((e) => (
-                            <div key={e.id} className="flex items-center justify-between gap-3 p-2.5">
-                                <div className="min-w-0">
-                                    <p className="text-sm font-medium truncate">{e.nome_negocio}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{e.email || 'sem e-mail'}</p>
-                                </div>
-                                <Button onClick={() => adicionar(e.id)} disabled={salvando}>Liberar</Button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {piloto.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">
-                        Nenhuma empresa liberada — ninguém vê a opção no painel.
-                    </p>
-                ) : (
-                    <div className="rounded-lg border divide-y">
-                        {piloto.map((p) => (
-                            <div key={p.empresaId} className="flex items-center justify-between gap-3 p-2.5">
-                                <div className="min-w-0">
-                                    <p className={`text-sm font-medium truncate ${p.orfao ? 'text-red-600' : ''}`}>
-                                        {p.nome_negocio}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground truncate">
-                                        {ROTULO_STATUS_SUBCONTA[p.status_subconta as StatusSubconta] || p.status_subconta}
-                                        {p.email ? ` · ${p.email}` : ''}
-                                    </p>
-                                </div>
-                                <Button variant="outline" onClick={() => remover(p.empresaId, p.nome_negocio)} disabled={salvando}>
-                                    Remover
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
+      </Card>
+    </div>
+  )
 }
