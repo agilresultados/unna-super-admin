@@ -6,7 +6,7 @@ export interface Campanha {
     descricao?: string;
     imagem_url: string;
     link_url?: string;
-    tipo: 'FLUTUANTE' | 'FIXA_MENU';
+    tipo: 'FLUTUANTE' | 'FLUTUANTE_9_16' | 'FIXA_MENU';
     empresaId?: string;
 }
 

@@ -130,7 +130,7 @@ const Campanhas = () => {
                                     <tr key={c.id} className="hover:bg-gray-50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-16 aspect-video rounded-md overflow-hidden bg-gray-100 flex-shrink-0 border">
+                                                <div className={`w-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 border ${c.tipo === 'FLUTUANTE_9_16' ? 'aspect-[9/16]' : 'aspect-video'}`}>
                                                     <img src={c.imagem_url} alt="" className="w-full h-full object-cover" />
                                                 </div>
                                                 <div>
@@ -143,8 +143,8 @@ const Campanhas = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="flex items-center gap-2 text-xs font-medium text-gray-600">
-                                                {c.tipo === 'FLUTUANTE' ? <Layout size={14} className="text-blue-500" /> : <LayoutPanelLeft size={14} className="text-purple-500" />}
-                                                {c.tipo === 'FLUTUANTE' ? 'Floating (16:9)' : 'Sidebar (4:3)'}
+                                                {c.tipo === 'FIXA_MENU' ? <LayoutPanelLeft size={14} className="text-purple-500" /> : <Layout size={14} className="text-blue-500" />}
+                                                {c.tipo === 'FLUTUANTE' ? 'Floating (16:9)' : c.tipo === 'FLUTUANTE_9_16' ? 'Floating (9:16)' : 'Sidebar (4:3)'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">

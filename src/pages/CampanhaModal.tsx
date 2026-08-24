@@ -26,7 +26,7 @@ const CampanhaModal: React.FC<CampanhaModalProps> = ({ isOpen, onClose, campanha
         link_url: '',
         data_inicio: new Date().toISOString().split('T')[0],
         data_fim: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        tipo: 'FLUTUANTE' as 'FLUTUANTE' | 'FIXA_MENU',
+        tipo: 'FLUTUANTE' as 'FLUTUANTE' | 'FLUTUANTE_9_16' | 'FIXA_MENU',
         empresaId: '' as string | undefined,
         ativo: true
     });
@@ -143,6 +143,7 @@ const CampanhaModal: React.FC<CampanhaModalProps> = ({ isOpen, onClose, campanha
                             className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md text-sm focus:ring-2 focus:ring-primary focus:outline-none"
                         >
                             <option value="FLUTUANTE">Flutuante (16:9)</option>
+                            <option value="FLUTUANTE_9_16">Flutuante (9:16)</option>
                             <option value="FIXA_MENU">Sidebar (4:3)</option>
                         </select>
                     </div>
