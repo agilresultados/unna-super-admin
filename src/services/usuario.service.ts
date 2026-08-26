@@ -109,10 +109,6 @@ class UsuarioService {
     return apiService.delete(`/super-admin/usuarios/${id}/purge`);
   }
 
-  async purgeMe(password: string): Promise<void> {
-    return apiService.delete('/usuarios/me/purge', { password });
-  }
-
   async getUsuariosByEmpresa(empresaId: string, params?: { page?: number; limit?: number; search?: string }): Promise<{ data: Usuario[]; total: number; pages: number }> {
     const queryParams = new URLSearchParams();
     queryParams.append('empresaId', empresaId);
