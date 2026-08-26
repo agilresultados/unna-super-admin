@@ -45,7 +45,7 @@ function SidebarNav({
           <NavLink
             key={item.key}
             to={item.to}
-            end={item.to === '/dashboard'}
+            end={item.to === '/dashboard' || item.to === '/sdr'}
             onClick={onNavigate}
             className={({ isActive }) => linkClass(isActive)}
           >
@@ -119,6 +119,7 @@ export function AppShell() {
   const brand = isLimited ? 'Painel SDR' : 'Unna Admin'
 
   const allItems = [...top, ...groups.flatMap((g) => g.items)]
+    .sort((a, b) => b.to.length - a.to.length)
   const title =
     allItems.find((item) =>
       item.to === '/dashboard'
@@ -158,7 +159,20 @@ export function AppShell() {
   }
 
   const quickItems = isLimited
-    ? [{ to: '/sdr', label: 'SDR', icon: 'activity', match: (p: string) => p.startsWith('/sdr') }]
+    ? [
+        {
+          to: '/sdr',
+          label: 'SDR',
+          icon: 'activity',
+          match: (p: string) => p === '/sdr',
+        },
+        {
+          to: '/sdr/winback/campanhas',
+          label: 'Winback',
+          icon: 'activity',
+          match: (p: string) => p.startsWith('/sdr/winback/campanhas'),
+        },
+      ]
     : MOBILE_QUICK
 
   return (
@@ -275,39 +289,37 @@ export function AppShell() {
         </main>
 
         {/* Bottom nav — mobile only */}
-        {!isLimited && (
-          <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-stretch border-t border-teal-border bg-sidebar-bg/95 backdrop-blur-md lg:hidden">
-            {quickItems.map((item) => {
-              const active = item.match
-                ? item.match(location.pathname)
-                : location.pathname.startsWith(item.to)
-              return (
-                <button
-                  key={item.to}
-                  type="button"
-                  onClick={() => navigate(item.to)}
-                  className={clsx(
-                    'flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium',
-                    active ? 'text-teal-main' : 'text-text-muted',
-                  )}
-                >
-                  <NavIcon name={item.icon} className="h-5 w-5" />
-                  {item.label}
-                </button>
-              )
-            })}
-            <button
-              type="button"
-              onClick={() => setMenuOpen(true)}
-              className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-text-muted"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              Mais
-            </button>
-          </nav>
-        )}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-stretch border-t border-teal-border bg-sidebar-bg/95 backdrop-blur-md lg:hidden">
+          {quickItems.map((item) => {
+            const active = item.match
+              ? item.match(location.pathname)
+              : location.pathname.startsWith(item.to)
+            return (
+              <button
+                key={item.to}
+                type="button"
+                onClick={() => navigate(item.to)}
+                className={clsx(
+                  'flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium',
+                  active ? 'text-teal-main' : 'text-text-muted',
+                )}
+              >
+                <NavIcon name={item.icon} className="h-5 w-5" />
+                {item.label}
+              </button>
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-text-muted"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            Mais
+          </button>
+        </nav>
       </div>
     </div>
   )

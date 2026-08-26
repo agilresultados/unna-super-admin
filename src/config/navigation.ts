@@ -17,6 +17,7 @@ export interface NavGroup {
 export const NAV_TOP: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', to: '/dashboard', icon: 'grid', hideWhenLimited: true },
   { key: 'sdr', label: 'Painel SDR', to: '/sdr', icon: 'activity', limitedOnly: true },
+  { key: 'sdr-winback-campanhas', label: 'Winback', to: '/sdr/winback/campanhas', icon: 'activity', limitedOnly: true },
 ]
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -63,6 +64,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: 'marketing', label: 'Marketing', to: '/marketing', icon: 'settings' },
       { key: 'atribuicao', label: 'Atribuição (Ads)', to: '/atribuicao', icon: 'settings' },
       { key: 'relatorios', label: 'Relatórios', to: '/relatorios', icon: 'activity' },
+      { key: 'solicitacoes-lgpd', label: 'Solicitações LGPD', to: '/solicitacoes-lgpd', icon: 'shield' },
       { key: 'configuracoes', label: 'Configurações', to: '/configuracoes', icon: 'settings' },
     ],
   },

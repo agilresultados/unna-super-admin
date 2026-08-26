@@ -22,8 +22,10 @@ import Marketing from '@/pages/Marketing'
 import Atribuicao from '@/pages/Atribuicao'
 import SdrPanel from '@/pages/SdrPanel'
 import SdrWinback from '@/pages/SdrWinback'
+import SdrCampanhaPanel from '@/pages/sdr/SdrCampanhaPanel'
 import Subcontas from '@/pages/Subcontas'
 import Atendimento from '@/pages/Atendimento'
+import AccountDeletionRequests from '@/pages/AccountDeletionRequests'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -46,6 +48,7 @@ export const router = createBrowserRouter([
           { path: 'afiliados', element: <AfiliadosSuperAdmin /> },
           { path: 'relatorios', element: <Relatorios /> },
           { path: 'configuracoes', element: <Configuracoes /> },
+          { path: 'solicitacoes-lgpd', element: <AccountDeletionRequests /> },
           { path: 'feature-management', element: <FeatureManagement /> },
           { path: 'suporte', element: <NotificacaoMassa /> },
           { path: 'atendimento', element: <Atendimento /> },
@@ -56,6 +59,8 @@ export const router = createBrowserRouter([
           { path: 'atribuicao', element: <Atribuicao /> },
           { path: 'sdr', element: <SdrPanel /> },
           { path: 'sdr/winback', element: <SdrWinback /> },
+          { path: 'sdr/winback/campanhas', element: <SdrCampanhaPanel /> },
+          { path: 'sdr/winback/campanhas/:campanhaId', element: <SdrCampanhaPanel /> },
         ],
       },
     ],

@@ -6,7 +6,7 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { toast } from 'sonner';
 import {
-  AlertCircle, Building2, Calendar, CheckSquare, ChevronDown, ChevronLeft,
+  AlertCircle, ArrowRight, Building2, Calendar, CheckSquare, ChevronDown, ChevronLeft,
   ChevronRight, Clock, Copy, CreditCard, Filter, Kanban, LayoutList, Mail,
   Phone, RefreshCw, Search, Send, Square, TrendingUp, XCircle,
 } from 'lucide-react';
@@ -16,7 +16,6 @@ import {
 import {
   SDR_SEGMENTS, SdrSegmentKey, detectSegment, fillTemplate,
 } from '@/data/sdrTemplates';
-import SdrCampanhaPanel from '@/pages/sdr/SdrCampanhaPanel';
 import SdrKanban from '@/pages/sdr/SdrKanban';
 import {
   AlcanceIcon,
@@ -80,9 +79,6 @@ const SdrPanel = () => {
   const [leadsEpoch, setLeadsEpoch] = useState(0);
 
   const navigate = useNavigate();
-  const [campanhaFocusId, setCampanhaFocusId] = useState<string | null>(null);
-  const [campanhaFocusNonce, setCampanhaFocusNonce] = useState(0);
-
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [approachModalOpen, setApproachModalOpen] = useState(false);
@@ -494,7 +490,19 @@ const SdrPanel = () => {
         )}
       </div>
 
-      <SdrCampanhaPanel focusId={campanhaFocusId} focusNonce={campanhaFocusNonce} />
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">Acompanhamento de winback</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Leia entregas, falhas e respostas em uma visão de conversa por campanha.
+            </p>
+          </div>
+          <Button variant="outline" className="h-9 shrink-0" onClick={() => navigate('/sdr/winback/campanhas')}>
+            Abrir acompanhamento <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      </div>
 
       <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3 items-end">

@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 
-const LIMITED_ALLOWED = new Set(['/sdr'])
+const isLimitedAllowed = (pathname: string) => pathname === '/sdr' || pathname.startsWith('/sdr/')
 
 export function ProtectedRoute() {
   const { isAuthenticated, loading, user } = useAuth()
@@ -23,7 +23,7 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace />
   }
 
-  if (user?.is_limited === true && !LIMITED_ALLOWED.has(location.pathname)) {
+  if (user?.is_limited === true && !isLimitedAllowed(location.pathname)) {
     return <Navigate to="/sdr" replace />
   }
 

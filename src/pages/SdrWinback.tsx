@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import Button from '@/components/ui/Button';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Building2, CheckSquare, ChevronLeft, ChevronRight, RefreshCw, Send, Square,
+  ArrowLeft, Building2, CheckSquare, ChevronLeft, ChevronRight, MessageCircle, RefreshCw, Send, Square,
 } from 'lucide-react';
 import {
   sdrService, SegmentoLead, WinbackCandidato,
@@ -146,14 +146,23 @@ export default function SdrWinback() {
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          className="h-9"
-          onClick={() => { void carregar(segmento, tamanhoLote, offset); }}
-          disabled={loading}
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="h-9"
+            onClick={() => navigate('/sdr/winback/campanhas')}
+          >
+            <MessageCircle className="w-4 h-4 mr-2" /> Acompanhar
+          </Button>
+          <Button
+            variant="outline"
+            className="h-9"
+            onClick={() => { void carregar(segmento, tamanhoLote, offset); }}
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar
+          </Button>
+        </div>
       </div>
 
       <Card>

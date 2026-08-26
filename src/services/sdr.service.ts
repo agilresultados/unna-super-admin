@@ -303,11 +303,11 @@ class SdrServiceApi {
   }
 
   async suspenderEmpresa(empresaId: string, motivo?: string): Promise<any> {
-    return apiService.patch(`/super-admin/empresas/${empresaId}/suspender`, { motivo });
+    return apiService.patch(`/sdr/leads/${empresaId}/suspender`, { motivo });
   }
 
   async reativarEmpresa(empresaId: string): Promise<any> {
-    return apiService.patch(`/super-admin/empresas/${empresaId}/reativar`, {});
+    return apiService.patch(`/sdr/leads/${empresaId}/reativar`, {});
   }
 }
 

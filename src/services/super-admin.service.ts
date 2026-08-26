@@ -127,6 +127,47 @@ export interface WorkerHealth {
   };
 }
 
+export interface AccountDeletionRequest {
+  id: string;
+  protocolo: string;
+  createdAt: string;
+  ip: string | null;
+  userAgent: string | null;
+  motivo: string | null;
+  prazoInformadoHoras: number | null;
+  cientePrazo: boolean;
+  cienteIrreversivel: boolean;
+  usuario: {
+    id: string;
+    nome: string;
+    email: string;
+    telefone: string | null;
+    role: string;
+  } | null;
+  empresa: {
+    id: string;
+    nome_negocio: string;
+    email: string | null;
+    cnpj: string | null;
+    assinatura: {
+      status: string;
+      plano: {
+        nome: string;
+      } | null;
+    } | null;
+  } | null;
+}
+
+export interface AccountDeletionRequestsResponse {
+  data: AccountDeletionRequest[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 class SuperAdminService {
   async impersonarEmpresa(empresaId: string): Promise<import('./impersonation.service').ImpersonationResponse> {
     try {
@@ -264,6 +305,26 @@ class SuperAdminService {
       return response;
     } catch (error) {
       console.error('Erro ao buscar logs de cron:', error);
+      throw error;
+    }
+  }
+
+  async getAccountDeletionRequests(params: {
+    page?: number;
+    limit?: number;
+  } = {}): Promise<AccountDeletionRequestsResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.page) queryParams.append('page', params.page.toString());
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+
+      const qs = queryParams.toString();
+      const response = await apiService.get<AccountDeletionRequestsResponse>(
+        `/super-admin/account-deletion-requests${qs ? `?${qs}` : ''}`
+      );
+      return response;
+    } catch (error) {
+      console.error('Erro ao buscar solicitações LGPD de exclusão:', error);
       throw error;
     }
   }
