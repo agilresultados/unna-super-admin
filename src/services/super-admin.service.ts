@@ -102,6 +102,31 @@ export interface ReceitaStats {
   crescimentoMensal: number;
 }
 
+export interface LoginLog {
+  id: string;
+  sucesso: boolean;
+  motivo: string;
+  metodo: string;
+  identificador: string | null;
+  mensagem: string | null;
+  detalhes?: any;
+  usuarioId: string | null;
+  empresaId: string | null;
+  ip: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  usuario?: {
+    id: string;
+    nome: string;
+    email: string | null;
+    role: string;
+  } | null;
+  empresa?: {
+    id: string;
+    nome_negocio: string;
+  } | null;
+}
+
 export interface CronLog {
   id: string;
   job_name: string;
@@ -275,6 +300,36 @@ class SuperAdminService {
       console.error('Erro ao buscar usuários online:', error);
       throw error;
     }
+  }
+
+  async getLoginLogs(params: {
+    page?: number;
+    limit?: number;
+    motivo?: string;
+    metodo?: string;
+    identificador?: string;
+    empresaId?: string;
+  }): Promise<{
+    data: LoginLog[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.motivo) queryParams.append('motivo', params.motivo);
+    if (params.metodo) queryParams.append('metodo', params.metodo);
+    if (params.identificador) queryParams.append('identificador', params.identificador);
+    if (params.empresaId) queryParams.append('empresaId', params.empresaId);
+
+    return apiService.get<{
+      data: LoginLog[];
+      pagination: any;
+    }>(`/super-admin/login-logs?${queryParams.toString()}`);
   }
 
   async getCronLogs(params: {

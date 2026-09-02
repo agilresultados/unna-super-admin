@@ -18,6 +18,7 @@ import Webhooks from '@/pages/Webhooks'
 import Campanhas from '@/pages/Campanhas'
 import AfiliadosSuperAdmin from '@/pages/AfiliadosSuperAdmin'
 import WorkerMonitoring from '@/pages/WorkerMonitoring'
+import LoginLogs from '@/pages/LoginLogs'
 import Marketing from '@/pages/Marketing'
 import Atribuicao from '@/pages/Atribuicao'
 import SdrPanel from '@/pages/SdrPanel'
@@ -53,6 +54,7 @@ export const router = createBrowserRouter([
           { path: 'suporte', element: <NotificacaoMassa /> },
           { path: 'atendimento', element: <Atendimento /> },
           { path: 'webhooks', element: <Webhooks /> },
+          { path: 'login-logs', element: <LoginLogs /> },
           { path: 'campanhas', element: <Campanhas /> },
           { path: 'monitoramento', element: <WorkerMonitoring /> },
           { path: 'marketing', element: <Marketing /> },

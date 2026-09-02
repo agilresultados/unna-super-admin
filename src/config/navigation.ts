@@ -60,6 +60,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       // { key: 'features', label: 'Features', to: '/feature-management', icon: 'settings' },
       { key: 'webhooks', label: 'Webhooks', to: '/webhooks', icon: 'activity' },
+      { key: 'login-logs', label: 'Logs de login', to: '/login-logs', icon: 'activity' },
       { key: 'monitoramento', label: 'Monitoramento', to: '/monitoramento', icon: 'activity' },
       { key: 'marketing', label: 'Marketing', to: '/marketing', icon: 'settings' },
       { key: 'atribuicao', label: 'Atribuição (Ads)', to: '/atribuicao', icon: 'settings' },
