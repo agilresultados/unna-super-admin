@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
     Users, DollarSign, TrendingUp, Settings, Check, X, Loader2, RefreshCw,
-    ArrowDownCircle, ToggleLeft, ToggleRight, Save, ExternalLink, ChevronDown, ChevronUp, ChevronRight
+    ArrowDownCircle, ToggleLeft, ToggleRight, Save, ExternalLink, ChevronDown, ChevronUp, ChevronRight, Receipt
 } from 'lucide-react';
 import {
-    afiliadoService, AfiliadoConfig, Afiliado, SaqueAfiliado, MetricasGerais
+    afiliadoService, AfiliadoConfig, Afiliado, SaqueAfiliado, MetricasGerais, ReconciliacaoGeral
 } from '@/services/afiliado.service';
 import { formatCurrencyDynamic, getCurrencyConfig } from '@/utils/currencyUtils';
 import AfiliadoIndicacoesTreeView from '@/components/superadmin/AfiliadoIndicacoesTreeView';
+import ExtratoAfiliado from '@/components/superadmin/ExtratoAfiliado';
 
 interface ModalProcessar {
     saqueId: string;
@@ -17,7 +18,7 @@ interface ModalProcessar {
 }
 
 const AfiliadosSuperAdmin: React.FC = () => {
-    const [tab, setTab] = useState<'metricas' | 'config' | 'afiliados' | 'saques'>('metricas');
+    const [tab, setTab] = useState<'metricas' | 'config' | 'afiliados' | 'conferencia' | 'saques'>('metricas');
     const [config, setConfig] = useState<AfiliadoConfig | null>(null);
     const [afiliados, setAfiliados] = useState<Afiliado[]>([]);
     const [saques, setSaques] = useState<SaqueAfiliado[]>([]);
@@ -28,6 +29,14 @@ const AfiliadosSuperAdmin: React.FC = () => {
     const [filtroSaqueStatus, setFiltroSaqueStatus] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    // Conferência do cache contra o livro-caixa. Roda sob demanda: varre todos
+    // os afiliados, então não é coisa para disparar a cada troca de aba.
+    const [reconciliacao, setReconciliacao] = useState<ReconciliacaoGeral | null>(null);
+    const [reconciliando, setReconciliando] = useState(false);
+
+    /** Qual afiliado está com o extrato aberto na lista. */
+    const [extratoAberto, setExtratoAberto] = useState<string | null>(null);
 
     // Modal de processamento
     const [modal, setModal] = useState<ModalProcessar | null>(null);
@@ -64,6 +73,25 @@ const AfiliadosSuperAdmin: React.FC = () => {
             setAfiliados(data);
         } catch (err) {
             console.error('Erro ao carregar afiliados:', err);
+        }
+    };
+
+    /**
+     * Confere todos os saldos contra o livro-caixa.
+     *
+     * Sob demanda de propósito: varre afiliado por afiliado somando lançamentos,
+     * então não é coisa para disparar sozinho a cada troca de aba.
+     */
+    const carregarReconciliacao = async () => {
+        setReconciliando(true);
+        setError('');
+        try {
+            setReconciliacao(await afiliadoService.reconciliar());
+        } catch (err) {
+            console.error('Erro ao conferir saldos:', err);
+            setError('Não foi possível conferir os saldos.');
+        } finally {
+            setReconciliando(false);
         }
     };
 
@@ -168,13 +196,13 @@ const AfiliadosSuperAdmin: React.FC = () => {
 
             {/* Tabs */}
             <div className="flex gap-1 bg-muted p-1 rounded-xl overflow-x-auto">
-                {(['metricas', 'config', 'afiliados', 'saques'] as const).map((t) => (
+                {(['metricas', 'config', 'afiliados', 'conferencia', 'saques'] as const).map((t) => (
                     <button
                         key={t}
                         onClick={() => setTab(t)}
                         className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === t ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                     >
-                        {t === 'metricas' ? 'Métricas' : t === 'config' ? 'Configurações' : t === 'afiliados' ? 'Afiliados' : (
+                        {t === 'metricas' ? 'Métricas' : t === 'config' ? 'Configurações' : t === 'afiliados' ? 'Afiliados' : t === 'conferencia' ? 'Conferência' : (
                             <span className="flex items-center justify-center gap-1">
                                 Saques
                                 {metricas && metricas.saquesPendentes > 0 && (
@@ -369,30 +397,111 @@ const AfiliadosSuperAdmin: React.FC = () => {
                     ) : (
                         <div className="divide-y divide-border">
                             {afiliados.map((af) => (
-                                <div key={af.id} className="p-4 flex items-center justify-between">
-                                    <div>
-                                        <p className="font-medium text-foreground">{af.empresa?.nome_negocio || 'Empresa'}</p>
-                                        <p className="text-xs text-muted-foreground font-mono">{af.codigo_referencia}</p>
-                                    </div>
-                                    <div className="text-right flex items-center gap-3">
+                                <div key={af.id}>
+                                    <div className="p-4 flex items-center justify-between">
                                         <div>
-                                            <p className="text-sm text-foreground">{af._count?.indicacoes || 0} indicações</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Desc: {formatCurrencyDynamic(af.desconto_acumulado)} · CB: {formatCurrencyDynamic(af.saldo_cashback)}
-                                            </p>
+                                            <p className="font-medium text-foreground">{af.empresa?.nome_negocio || 'Empresa'}</p>
+                                            <p className="text-xs text-muted-foreground font-mono">{af.codigo_referencia}</p>
                                         </div>
-                                        <span
-                                            className={`px-2 py-1 rounded-full text-xs font-medium ${af.status === 'ATIVO' ? 'bg-green-500/10 text-green-600'
-                                                    : af.status === 'INATIVO' ? 'bg-red-500/10 text-red-600'
-                                                        : 'bg-yellow-500/10 text-yellow-600'
-                                                }`}
-                                        >
-                                            {af.status}
-                                        </span>
+                                        <div className="text-right flex items-center gap-3">
+                                            <div>
+                                                <p className="text-sm text-foreground">{af._count?.indicacoes || 0} indicações</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Desc: {formatCurrencyDynamic(af.desconto_acumulado)} · CB: {formatCurrencyDynamic(af.saldo_cashback)}
+                                                </p>
+                                            </div>
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs font-medium ${af.status === 'ATIVO' ? 'bg-green-500/10 text-green-600'
+                                                        : af.status === 'INATIVO' ? 'bg-red-500/10 text-red-600'
+                                                            : 'bg-yellow-500/10 text-yellow-600'
+                                                    }`}
+                                            >
+                                                {af.status}
+                                            </span>
+                                            <button
+                                                onClick={() => setExtratoAberto(extratoAberto === af.id ? null : af.id)}
+                                                title="Ver extrato do livro-caixa"
+                                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-2 py-1.5 transition-colors"
+                                            >
+                                                <Receipt size={14} />
+                                                {extratoAberto === af.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                            </button>
+                                        </div>
                                     </div>
+                                    {extratoAberto === af.id && (
+                                        <div className="bg-muted/30 border-t border-border">
+                                            <ExtratoAfiliado afiliadoId={af.id} />
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
+                    )}
+                </div>
+            )}
+
+            {/* Conferência: cache vs livro-caixa */}
+            {tab === 'conferencia' && (
+                <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                    <div className="p-4 border-b border-border flex items-center justify-between gap-3">
+                        <div>
+                            <h3 className="font-semibold text-foreground">Conferência de saldos</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Compara <code className="font-mono">saldo_cashback</code> com a soma dos lançamentos.
+                                Divergência significa saldo alterado por fora do livro-caixa — investigue, não "corrija" no banco.
+                            </p>
+                        </div>
+                        <button
+                            onClick={carregarReconciliacao}
+                            disabled={reconciliando}
+                            className="shrink-0 flex items-center gap-2 bg-muted hover:bg-muted/70 text-foreground px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-60"
+                        >
+                            {reconciliando ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                            Conferir
+                        </button>
+                    </div>
+
+                    {!reconciliacao ? (
+                        <div className="p-8 text-center text-muted-foreground text-sm">
+                            Clique em <strong>Conferir</strong> para rodar a checagem.
+                        </div>
+                    ) : reconciliacao.total_divergentes === 0 ? (
+                        <div className="p-8 text-center">
+                            <Check size={40} className="mx-auto mb-3 text-green-600" />
+                            <p className="text-foreground font-medium">
+                                {reconciliacao.total_afiliados} afiliado(s) conferidos, todos batendo.
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">Cada saldo é exatamente a soma dos seus lançamentos.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="p-4 bg-destructive/10 border-b border-border">
+                                <p className="text-sm font-medium text-destructive">
+                                    {reconciliacao.total_divergentes} de {reconciliacao.total_afiliados} afiliado(s) não fecham.
+                                </p>
+                            </div>
+                            <div className="divide-y divide-border">
+                                {reconciliacao.divergentes.map((linha) => (
+                                    <div key={linha.afiliadoId} className="p-4 flex items-center justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="font-medium text-foreground truncate">{linha.nome_negocio || 'Empresa'}</p>
+                                            <p className="text-xs text-muted-foreground font-mono truncate">{linha.afiliadoId}</p>
+                                        </div>
+                                        <div className="text-right shrink-0 text-xs">
+                                            <p className="text-muted-foreground">
+                                                Cache: <span className="text-foreground font-medium">{formatCurrencyDynamic(linha.saldo_cache)}</span>
+                                            </p>
+                                            <p className="text-muted-foreground">
+                                                Livro-caixa: <span className="text-foreground font-medium">{formatCurrencyDynamic(linha.saldo_ledger)}</span>
+                                            </p>
+                                            <p className="text-destructive font-semibold mt-0.5">
+                                                Diferença: {formatCurrencyDynamic(linha.divergencia)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </div>
             )}

@@ -1,7 +1,6 @@
 import { apiService } from './api';
 
 export interface EnderecoPublico {
-  cep?: string;
   logradouro?: string;
   numero?: string;
   complemento?: string;
@@ -25,7 +24,6 @@ export interface EmpresaPublica {
   id: string;
   nome_negocio: string;
   telefone?: string;
-  email?: string;
   avatar_url?: string;
   endereco?: EnderecoPublico;
   whatsapp_suporte?: string;
@@ -49,8 +47,6 @@ export interface ServicoPublico {
 export interface ColaboradorPublico {
   id: string;
   nome: string;
-  email: string;
-  telefone?: string;
   avatar_url?: string;
   servicos: string[]; // IDs de serviços que o colaborador executa
 }
