@@ -4,7 +4,7 @@ import {
     ArrowDownCircle, ToggleLeft, ToggleRight, Save, ExternalLink, ChevronDown, ChevronUp, ChevronRight, Receipt
 } from 'lucide-react';
 import {
-    afiliadoService, AfiliadoConfig, Afiliado, SaqueAfiliado, MetricasGerais, ReconciliacaoGeral
+    afiliadoService, AfiliadoConfig, Afiliado, SaqueAfiliado, MetricasGerais, ReconciliacaoGeral, IndicacaoEmAnalise
 } from '@/services/afiliado.service';
 import { formatCurrencyDynamic, getCurrencyConfig } from '@/utils/currencyUtils';
 import AfiliadoIndicacoesTreeView from '@/components/superadmin/AfiliadoIndicacoesTreeView';
@@ -18,7 +18,7 @@ interface ModalProcessar {
 }
 
 const AfiliadosSuperAdmin: React.FC = () => {
-    const [tab, setTab] = useState<'metricas' | 'config' | 'afiliados' | 'conferencia' | 'saques'>('metricas');
+    const [tab, setTab] = useState<'metricas' | 'config' | 'afiliados' | 'analise' | 'conferencia' | 'saques'>('metricas');
     const [config, setConfig] = useState<AfiliadoConfig | null>(null);
     const [afiliados, setAfiliados] = useState<Afiliado[]>([]);
     const [saques, setSaques] = useState<SaqueAfiliado[]>([]);
@@ -37,6 +37,10 @@ const AfiliadosSuperAdmin: React.FC = () => {
 
     /** Qual afiliado está com o extrato aberto na lista. */
     const [extratoAberto, setExtratoAberto] = useState<string | null>(null);
+
+    /** Fila do antifraude. */
+    const [emAnalise, setEmAnalise] = useState<IndicacaoEmAnalise[]>([]);
+    const [resolvendo, setResolvendo] = useState<string | null>(null);
 
     // Modal de processamento
     const [modal, setModal] = useState<ModalProcessar | null>(null);
@@ -95,6 +99,33 @@ const AfiliadosSuperAdmin: React.FC = () => {
         }
     };
 
+    const carregarEmAnalise = async () => {
+        try {
+            setEmAnalise(await afiliadoService.listarIndicacoesEmAnalise());
+        } catch (err) {
+            console.error('Erro ao carregar indicações em análise:', err);
+        }
+    };
+
+    /**
+     * Liberar devolve para PENDENTE (volta ao fluxo normal e só confirma quando a
+     * indicada pagar). Recusar encerra em CANCELADA. Nenhum dos dois credita
+     * nada por si — quem credita continua sendo o pagamento.
+     */
+    const resolverAnalise = async (id: string, liberar: boolean) => {
+        setResolvendo(id);
+        setError('');
+        try {
+            await afiliadoService.resolverIndicacaoEmAnalise(id, liberar);
+            setSuccess(liberar ? 'Indicação liberada.' : 'Indicação recusada.');
+            await carregarEmAnalise();
+        } catch (err: any) {
+            setError(err?.message || 'Não foi possível decidir a indicação.');
+        } finally {
+            setResolvendo(null);
+        }
+    };
+
     const carregarSaques = async (status?: string) => {
         try {
             const data = await afiliadoService.listarSaques(status || undefined);
@@ -106,6 +137,7 @@ const AfiliadosSuperAdmin: React.FC = () => {
 
     useEffect(() => {
         if (tab === 'afiliados') carregarAfiliados(filtroStatus);
+        if (tab === 'analise') carregarEmAnalise();
     }, [tab, filtroStatus]);
 
     useEffect(() => {
@@ -196,13 +228,13 @@ const AfiliadosSuperAdmin: React.FC = () => {
 
             {/* Tabs */}
             <div className="flex gap-1 bg-muted p-1 rounded-xl overflow-x-auto">
-                {(['metricas', 'config', 'afiliados', 'conferencia', 'saques'] as const).map((t) => (
+                {(['metricas', 'config', 'afiliados', 'analise', 'conferencia', 'saques'] as const).map((t) => (
                     <button
                         key={t}
                         onClick={() => setTab(t)}
                         className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === t ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                     >
-                        {t === 'metricas' ? 'Métricas' : t === 'config' ? 'Configurações' : t === 'afiliados' ? 'Afiliados' : t === 'conferencia' ? 'Conferência' : (
+                        {t === 'metricas' ? 'Métricas' : t === 'config' ? 'Configurações' : t === 'afiliados' ? 'Afiliados' : t === 'analise' ? 'Análise' : t === 'conferencia' ? 'Conferência' : (
                             <span className="flex items-center justify-center gap-1">
                                 Saques
                                 {metricas && metricas.saquesPendentes > 0 && (
@@ -338,27 +370,30 @@ const AfiliadosSuperAdmin: React.FC = () => {
                             />
                         </div>
                         <div>
-                            <label className="text-sm font-medium text-foreground mb-1 block">Dias de Inatividade para Perder Afiliação</label>
+                            <label className="text-sm font-medium text-foreground mb-1 block">Dias de Carência do Crédito</label>
                             <input
                                 type="number"
-                                value={config.dias_inatividade}
-                                onChange={(e) => setConfig({ ...config, dias_inatividade: parseInt(e.target.value) || 30 })}
+                                value={config.dias_carencia}
+                                onChange={(e) => setConfig({ ...config, dias_carencia: parseInt(e.target.value) || 0 })}
+                                className="w-full bg-muted border border-border rounded-lg px-3 py-2.5 text-sm text-foreground"
+                                min="0"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Dias entre o crédito da comissão e a liberação para saque. Protege de estorno do gateway — PIX que já saiu não volta. 0 desliga.
+                            </p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-foreground mb-1 block">Meses de Recompensa por Indicação</label>
+                            <input
+                                type="number"
+                                value={config.meses_recompensa}
+                                onChange={(e) => setConfig({ ...config, meses_recompensa: parseInt(e.target.value) || 12 })}
                                 className="w-full bg-muted border border-border rounded-lg px-3 py-2.5 text-sm text-foreground"
                                 min="1"
                             />
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setConfig({ ...config, zerar_saldo_inatividade: !config.zerar_saldo_inatividade })}
-                            className="text-primary"
-                        >
-                            {config.zerar_saldo_inatividade ? <ToggleRight size={24} /> : <ToggleLeft size={24} className="text-muted-foreground" />}
-                        </button>
-                        <div>
-                            <p className="text-sm font-medium text-foreground">Zerar saldo de cashback na inatividade</p>
-                            <p className="text-xs text-muted-foreground">Se ativo, o cashback acumulado também é zerado quando o afiliado fica inativo</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Por quantos meses uma indicação confirmada continua rendendo, contados da confirmação.
+                            </p>
                         </div>
                     </div>
 
@@ -433,6 +468,61 @@ const AfiliadosSuperAdmin: React.FC = () => {
                                             <ExtratoAfiliado afiliadoId={af.id} />
                                         </div>
                                     )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Antifraude: indicações retidas esperando decisão humana */}
+            {tab === 'analise' && (
+                <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                    <div className="p-4 border-b border-border">
+                        <h3 className="font-semibold text-foreground">Indicações em análise</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Documento, telefone ou e-mail do cadastro bateu com o de quem indicou. Nada aqui paga até ser
+                            liberado — mas indicação esquecida nesta fila é comissão legítima parada.
+                        </p>
+                    </div>
+
+                    {!emAnalise.length ? (
+                        <div className="p-8 text-center text-muted-foreground">
+                            <Check size={40} className="mx-auto mb-3 opacity-30" />
+                            <p>Nenhuma indicação retida.</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-border">
+                            {emAnalise.map((ind) => (
+                                <div key={ind.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="font-medium text-foreground truncate">
+                                            {ind.afiliado?.empresa?.nome_negocio || 'Afiliado'}{' '}
+                                            <span className="text-muted-foreground font-normal">indicou</span>{' '}
+                                            {ind.empresa_indicada_nome}
+                                        </p>
+                                        <p className="text-xs text-destructive mt-0.5">{ind.motivo_analise}</p>
+                                        <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                                            {ind.afiliado?.codigo_referencia} ·{' '}
+                                            {new Date(ind.createdAt).toLocaleDateString('pt-BR')}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-2 shrink-0">
+                                        <button
+                                            onClick={() => resolverAnalise(ind.id, false)}
+                                            disabled={resolvendo === ind.id}
+                                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-60"
+                                        >
+                                            Recusar
+                                        </button>
+                                        <button
+                                            onClick={() => resolverAnalise(ind.id, true)}
+                                            disabled={resolvendo === ind.id}
+                                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors disabled:opacity-60"
+                                        >
+                                            Liberar
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

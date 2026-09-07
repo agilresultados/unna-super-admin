@@ -7,9 +7,10 @@ export interface AfiliadoConfig {
     tipo_recompensa: 'fixo' | 'porcentagem';
     valor_recompensa: number;
     saque_minimo: number;
-    dias_inatividade: number;
-    zerar_saldo_inatividade: boolean;
-    indicacao_confirma_em: 'cadastro' | 'assinatura';
+    /** Dias entre o crédito da comissão e a liberação para saque. */
+    dias_carencia: number;
+    /** Por quantos meses uma indicação confirmada continua rendendo. */
+    meses_recompensa: number;
     restrito_beta?: boolean;
     emails_permitidos?: string[];
 }
@@ -59,18 +60,31 @@ export interface SaqueAfiliado {
     id: string;
     afiliadoId: string;
     valor: number;
-    status: 'SOLICITADO' | 'APROVADO' | 'REJEITADO' | 'PAGO';
+    /** ESTORNADO: repasse que voltou depois de pago; o valor retorna ao saldo. */
+    status: 'SOLICITADO' | 'APROVADO' | 'REJEITADO' | 'PAGO' | 'ESTORNADO';
     motivo_rejeicao?: string;
     observacao?: string;
     comprovante_url?: string;
     createdAt: string;
     updatedAt: string;
     processadoEm?: string;
+    estornadoEm?: string;
+    motivo_estorno?: string;
+    /** Destino do repasse no momento do pedido — nunca a chave inteira. */
+    pix_tipo?: string | null;
+    pix_chave_mascarada?: string | null;
     afiliado?: Afiliado;
 }
 
 export interface AfiliadoDashboard {
     ativo: boolean;
+    /** Destino do repasse. A chave nunca volta inteira — só mascarada. */
+    recebimento?: {
+        configurado: boolean;
+        pix_tipo: string | null;
+        pix_chave_mascarada: string | null;
+        titular_nome: string | null;
+    };
     /**
      * A empresa pode participar do programa AGORA (assinatura ACTIVE ou TRIAL).
      *
@@ -93,7 +107,10 @@ export interface AfiliadoDashboard {
     metricas?: {
         indicacoes_confirmadas: number;
         indicacoes_pendentes: number;
-        dias_ate_inatividade: number | null;
+        /** Sacável agora — comissão em carência não entra. */
+        saldo_disponivel: number;
+        saldo_em_carencia: number;
+        proxima_liberacao: { em: string; valor: number } | null;
         preco_plano: number;
         pode_sacar: boolean;
         saque_minimo: number;
@@ -167,6 +184,39 @@ export interface ReconciliacaoGeral {
     divergentes: ReconciliacaoAfiliado[];
 }
 
+export type TipoChavePix = 'CPF' | 'CNPJ' | 'EMAIL' | 'TELEFONE' | 'ALEATORIA';
+
+export interface DadosRecebimento {
+    pix_tipo: TipoChavePix;
+    pix_chave: string;
+    titular_nome: string;
+    titular_documento: string;
+}
+
+export interface SaldoDetalhado {
+    saldo_total: number;
+    /** O que dá para sacar agora. Comissão em carência não entra. */
+    saldo_disponivel: number;
+    saldo_em_carencia: number;
+    proxima_liberacao: { em: string; valor: number } | null;
+}
+
+export interface IndicacaoEmAnalise {
+    id: string;
+    afiliadoId: string;
+    empresaIndicadaId: string;
+    status: string;
+    motivo_analise: string | null;
+    createdAt: string;
+    empresa_indicada_nome: string;
+    empresa_indicada_criada_em: string | null;
+    afiliado: {
+        id: string;
+        codigo_referencia: string;
+        empresa?: { nome_negocio: string };
+    };
+}
+
 // ============== SERVICE ==============
 
 class AfiliadoService {
@@ -181,6 +231,21 @@ class AfiliadoService {
 
     async getAfiliado(): Promise<Afiliado | null> {
         return apiService.get<Afiliado | null>('/afiliados/meu');
+    }
+
+    /** Saldo separado entre disponível e em carência. */
+    async getSaldoDetalhado(): Promise<SaldoDetalhado> {
+        return apiService.get<SaldoDetalhado>('/afiliados/recebimento');
+    }
+
+    /**
+     * Define para onde o repasse vai. Obrigatório antes do primeiro saque.
+     *
+     * O backend valida a chave contra o TIPO declarado e confere o dígito
+     * verificador do CPF/CNPJ — não confie só na validação da tela.
+     */
+    async definirDadosRecebimento(dados: DadosRecebimento): Promise<Afiliado> {
+        return apiService.put<Afiliado>('/afiliados/recebimento', dados);
     }
 
     /** Código aleatório livre, para o botão "gerar outro". */
@@ -275,6 +340,21 @@ class AfiliadoService {
     /** Confere os saldos contra o livro-caixa. Divergência = saldo mexido por fora. */
     async reconciliar(): Promise<ReconciliacaoGeral> {
         return apiService.get<ReconciliacaoGeral>('/afiliados/admin/reconciliacao');
+    }
+
+    /** Fila do antifraude: indicações retidas esperando decisão humana. */
+    async listarIndicacoesEmAnalise(): Promise<IndicacaoEmAnalise[]> {
+        return apiService.get<IndicacaoEmAnalise[]>('/afiliados/admin/indicacoes/em-analise');
+    }
+
+    /** Liberar devolve para PENDENTE; recusar encerra em CANCELADA. */
+    async resolverIndicacaoEmAnalise(id: string, liberar: boolean, observacao?: string): Promise<Indicacao> {
+        return apiService.patch<Indicacao>(`/afiliados/admin/indicacoes/${id}/analise`, { liberar, observacao });
+    }
+
+    /** Repasse que voltou depois de pago. O valor retorna ao saldo por lançamento. */
+    async estornarSaquePago(saqueId: string, motivo: string): Promise<SaqueAfiliado> {
+        return apiService.patch<SaqueAfiliado>(`/afiliados/admin/saques/${saqueId}/estorno`, { motivo });
     }
 
     async getMetricasGerais(): Promise<MetricasGerais> {
