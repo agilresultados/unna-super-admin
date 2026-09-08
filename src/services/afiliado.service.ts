@@ -39,6 +39,20 @@ export interface Afiliado {
     };
 }
 
+export interface SolicitacaoAfiliacao {
+    id: string;
+    empresaId: string;
+    status: 'PENDENTE' | 'APROVADA' | 'RECUSADA';
+    createdAt: string;
+    observacaoDecisao?: string | null;
+    empresa: {
+        nome_negocio: string;
+        email: string | null;
+        telefone: string | null;
+        assinatura?: { status: string; data_inicio: string } | null;
+    };
+}
+
 export interface Indicacao {
     id: string;
     afiliadoId: string;
@@ -304,6 +318,14 @@ class AfiliadoService {
     async listarAfiliados(status?: string): Promise<Afiliado[]> {
         const params = status ? `?status=${status}` : '';
         return apiService.get<Afiliado[]>(`/afiliados/admin/todos${params}`);
+    }
+
+    async listarSolicitacoesAfiliacao(status = 'PENDENTE'): Promise<SolicitacaoAfiliacao[]> {
+        return apiService.get<SolicitacaoAfiliacao[]>(`/afiliados/admin/solicitacoes?status=${status}`);
+    }
+
+    async decidirSolicitacaoAfiliacao(id: string, aprovada: boolean): Promise<SolicitacaoAfiliacao> {
+        return apiService.patch<SolicitacaoAfiliacao>(`/afiliados/admin/solicitacoes/${id}`, { aprovada });
     }
 
     async getIndicacoesAfiliadoAdmin(afiliadoId: string): Promise<IndicacaoComNome[]> {

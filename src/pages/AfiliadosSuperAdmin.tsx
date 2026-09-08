@@ -4,7 +4,7 @@ import {
     ArrowDownCircle, ToggleLeft, ToggleRight, Save, ExternalLink, ChevronDown, ChevronUp, ChevronRight, Receipt
 } from 'lucide-react';
 import {
-    afiliadoService, AfiliadoConfig, Afiliado, SaqueAfiliado, MetricasGerais, ReconciliacaoGeral, IndicacaoEmAnalise
+    afiliadoService, AfiliadoConfig, Afiliado, SaqueAfiliado, MetricasGerais, ReconciliacaoGeral, IndicacaoEmAnalise, SolicitacaoAfiliacao
 } from '@/services/afiliado.service';
 import { formatCurrencyDynamic, getCurrencyConfig } from '@/utils/currencyUtils';
 import AfiliadoIndicacoesTreeView from '@/components/superadmin/AfiliadoIndicacoesTreeView';
@@ -21,6 +21,8 @@ const AfiliadosSuperAdmin: React.FC = () => {
     const [tab, setTab] = useState<'metricas' | 'config' | 'afiliados' | 'analise' | 'conferencia' | 'saques'>('metricas');
     const [config, setConfig] = useState<AfiliadoConfig | null>(null);
     const [afiliados, setAfiliados] = useState<Afiliado[]>([]);
+    const [solicitacoes, setSolicitacoes] = useState<SolicitacaoAfiliacao[]>([]);
+    const [decidindoSolicitacao, setDecidindoSolicitacao] = useState<string | null>(null);
     const [saques, setSaques] = useState<SaqueAfiliado[]>([]);
     const [metricas, setMetricas] = useState<MetricasGerais | null>(null);
     const [loading, setLoading] = useState(true);
@@ -80,6 +82,28 @@ const AfiliadosSuperAdmin: React.FC = () => {
         }
     };
 
+    const carregarSolicitacoes = async () => {
+        try {
+            setSolicitacoes(await afiliadoService.listarSolicitacoesAfiliacao());
+        } catch (err) {
+            console.error('Erro ao carregar solicitações de afiliação:', err);
+        }
+    };
+
+    const decidirSolicitacao = async (id: string, aprovada: boolean) => {
+        try {
+            setDecidindoSolicitacao(id);
+            setError('');
+            await afiliadoService.decidirSolicitacaoAfiliacao(id, aprovada);
+            setSuccess(aprovada ? 'Solicitação aprovada e afiliado liberado.' : 'Solicitação recusada.');
+            await Promise.all([carregarSolicitacoes(), carregarAfiliados(filtroStatus), carregarDados()]);
+        } catch (err: any) {
+            setError(err?.response?.data?.message || 'Não foi possível decidir a solicitação.');
+        } finally {
+            setDecidindoSolicitacao(null);
+        }
+    };
+
     /**
      * Confere todos os saldos contra o livro-caixa.
      *
@@ -136,7 +160,10 @@ const AfiliadosSuperAdmin: React.FC = () => {
     };
 
     useEffect(() => {
-        if (tab === 'afiliados') carregarAfiliados(filtroStatus);
+        if (tab === 'afiliados') {
+            carregarAfiliados(filtroStatus);
+            carregarSolicitacoes();
+        }
         if (tab === 'analise') carregarEmAnalise();
     }, [tab, filtroStatus]);
 
@@ -149,7 +176,8 @@ const AfiliadosSuperAdmin: React.FC = () => {
         try {
             setSaving(true);
             setError('');
-            await afiliadoService.updateConfig(config);
+            const configSalva = await afiliadoService.updateConfig(config);
+            setConfig(configSalva);
             setSuccess('Configurações salvas com sucesso!');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err: any) {
@@ -303,34 +331,9 @@ const AfiliadosSuperAdmin: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-3 p-4 bg-muted/50 rounded-xl border border-border mt-4">
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => setConfig({ ...config, restrito_beta: !config.restrito_beta })}
-                                className="text-primary"
-                            >
-                                {config.restrito_beta ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-muted-foreground" />}
-                            </button>
-                            <div>
-                                <p className="font-semibold text-foreground">Modo Restrito (Beta)</p>
-                                <p className="text-xs text-muted-foreground">Se ativo, apenas os e-mails abaixo poderão acessar o sistema de afiliados.</p>
-                            </div>
-                        </div>
-
-                        {config.restrito_beta && (
-                            <div className="mt-2">
-                                <label className="text-sm font-medium text-foreground block mb-1">E-mails Permitidos (Um por linha)</label>
-                                <textarea
-                                    value={config.emails_permitidos?.join('\n') || ''}
-                                    onChange={(e) => {
-                                        const emails = e.target.value.split('\n').map(em => em.trim()).filter(Boolean);
-                                        setConfig({ ...config, emails_permitidos: emails });
-                                    }}
-                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground min-h-[100px]"
-                                    placeholder="empresa1@email.com&#10;empresa2@email.com"
-                                />
-                            </div>
-                        )}
+                    <div className="p-4 bg-muted/50 rounded-xl border border-border mt-4 text-sm text-muted-foreground">
+                        A entrada no programa é decidida pelas solicitações na aba <strong className="text-foreground">Afiliados</strong>.
+                        A lista manual de e-mails não é mais usada.
                     </div>
 
                     <div className="grid sm:grid-cols-2 gap-4 mt-6">
@@ -411,6 +414,42 @@ const AfiliadosSuperAdmin: React.FC = () => {
             {/* Lista de Afiliados */}
             {tab === 'afiliados' && (
                 <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                    <div className="p-4 border-b border-border">
+                        <h3 className="font-semibold text-foreground">Solicitações de adesão</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">Aprovar cria o afiliado e libera o link de indicação para a empresa.</p>
+                    </div>
+                    {!solicitacoes.length ? (
+                        <div className="p-5 text-sm text-muted-foreground">Nenhuma solicitação aguardando análise.</div>
+                    ) : (
+                        <div className="divide-y divide-border">
+                            {solicitacoes.map((solicitacao) => (
+                                <div key={solicitacao.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <p className="font-medium text-foreground">{solicitacao.empresa.nome_negocio}</p>
+                                        <p className="text-xs text-muted-foreground">{solicitacao.empresa.email || 'E-mail não informado'} · {solicitacao.empresa.telefone || 'Telefone não informado'}</p>
+                                        <p className="text-xs text-muted-foreground mt-1">Solicitada em {new Date(solicitacao.createdAt).toLocaleDateString('pt-BR')}</p>
+                                    </div>
+                                    <div className="flex gap-2 shrink-0">
+                                        <button
+                                            onClick={() => decidirSolicitacao(solicitacao.id, false)}
+                                            disabled={decidindoSolicitacao === solicitacao.id}
+                                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-60"
+                                        >
+                                            Recusar
+                                        </button>
+                                        <button
+                                            onClick={() => decidirSolicitacao(solicitacao.id, true)}
+                                            disabled={decidindoSolicitacao === solicitacao.id}
+                                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-600 hover:bg-green-500/20 disabled:opacity-60"
+                                        >
+                                            {decidindoSolicitacao === solicitacao.id ? 'Processando…' : 'Aprovar'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     <div className="p-4 border-b border-border flex items-center justify-between">
                         <h3 className="font-semibold text-foreground">Afiliados</h3>
                         <select
