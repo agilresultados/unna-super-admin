@@ -17,6 +17,17 @@ interface ModalProcessar {
     aprovando: boolean;
 }
 
+const emailsPermitidosParaTexto = (emails: unknown): string => {
+    if (Array.isArray(emails)) return emails.join('\n');
+    if (typeof emails === 'string') return emails;
+    return '';
+};
+
+const separarEmailsPermitidos = (texto: string): string[] =>
+    [...new Set(
+        texto.split(/\r?\n/).map((email) => email.trim().toLowerCase()).filter(Boolean),
+    )];
+
 const AfiliadosSuperAdmin: React.FC = () => {
     const [tab, setTab] = useState<'metricas' | 'config' | 'afiliados' | 'analise' | 'conferencia' | 'saques'>('metricas');
     const [config, setConfig] = useState<AfiliadoConfig | null>(null);
@@ -31,6 +42,7 @@ const AfiliadosSuperAdmin: React.FC = () => {
     const [filtroSaqueStatus, setFiltroSaqueStatus] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [emailsPermitidosTexto, setEmailsPermitidosTexto] = useState('');
 
     // Conferência do cache contra o livro-caixa. Roda sob demanda: varre todos
     // os afiliados, então não é coisa para disparar a cada troca de aba.
@@ -65,6 +77,7 @@ const AfiliadosSuperAdmin: React.FC = () => {
                 afiliadoService.getMetricasGerais(),
             ]);
             setConfig(configData);
+            setEmailsPermitidosTexto(emailsPermitidosParaTexto(configData.emails_permitidos));
             setMetricas(metricasData);
         } catch (err) {
             console.error('Erro ao carregar dados:', err);
@@ -176,8 +189,12 @@ const AfiliadosSuperAdmin: React.FC = () => {
         try {
             setSaving(true);
             setError('');
-            const configSalva = await afiliadoService.updateConfig(config);
+            const configSalva = await afiliadoService.updateConfig({
+                ...config,
+                emails_permitidos: separarEmailsPermitidos(emailsPermitidosTexto),
+            });
             setConfig(configSalva);
+            setEmailsPermitidosTexto(emailsPermitidosParaTexto(configSalva.emails_permitidos));
             setSuccess('Configurações salvas com sucesso!');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err: any) {
@@ -331,9 +348,33 @@ const AfiliadosSuperAdmin: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="p-4 bg-muted/50 rounded-xl border border-border mt-4 text-sm text-muted-foreground">
-                        A entrada no programa é decidida pelas solicitações na aba <strong className="text-foreground">Afiliados</strong>.
-                        A lista manual de e-mails não é mais usada.
+                    <div className="flex flex-col gap-3 p-4 bg-muted/50 rounded-xl border border-border mt-4">
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setConfig({ ...config, restrito_beta: !config.restrito_beta })}
+                                className="text-primary"
+                            >
+                                {config.restrito_beta ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-muted-foreground" />}
+                            </button>
+                            <div>
+                                <p className="font-semibold text-foreground">Modo Restrito (Beta)</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Ativo: apenas os e-mails abaixo veem e acessam o programa antecipadamente. Desativado: todas as empresas elegíveis podem solicitar adesão.
+                                </p>
+                            </div>
+                        </div>
+
+                        {config.restrito_beta && (
+                            <div className="mt-2">
+                                <label className="text-sm font-medium text-foreground block mb-1">E-mails autorizados no beta (um por linha)</label>
+                                <textarea
+                                    value={emailsPermitidosTexto}
+                                    onChange={(event) => setEmailsPermitidosTexto(event.target.value)}
+                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground min-h-[100px]"
+                                    placeholder="empresa1@email.com&#10;empresa2@email.com"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid sm:grid-cols-2 gap-4 mt-6">
