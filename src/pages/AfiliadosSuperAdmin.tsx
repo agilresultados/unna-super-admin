@@ -9,6 +9,7 @@ import {
 import { formatCurrencyDynamic, getCurrencyConfig } from '@/utils/currencyUtils';
 import AfiliadoIndicacoesTreeView from '@/components/superadmin/AfiliadoIndicacoesTreeView';
 import ExtratoAfiliado from '@/components/superadmin/ExtratoAfiliado';
+import MaterialConfig from './afiliados/MaterialConfig';
 
 interface ModalProcessar {
     saqueId: string;
@@ -451,6 +452,8 @@ const AfiliadosSuperAdmin: React.FC = () => {
                     </button>
                 </div>
             )}
+
+            {tab === 'config' && <MaterialConfig />}
 
             {/* Lista de Afiliados */}
             {tab === 'afiliados' && (
