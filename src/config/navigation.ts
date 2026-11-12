@@ -55,6 +55,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: 'atendimento', label: 'Atendimento', to: '/atendimento', icon: 'activity' },
       { key: 'mensagens-whatsapp', label: 'Mensagens enviadas', to: '/mensagens-whatsapp', icon: 'activity' },
+      { key: 'whatsapp-oficial', label: 'WhatsApp oficial', to: '/whatsapp-oficial', icon: 'activity' },
       { key: 'suporte', label: 'Notificações (WAHA)', to: '/suporte', icon: 'activity' },
       { key: 'campanhas', label: 'Campanhas', to: '/campanhas', icon: 'activity' },
     ],
