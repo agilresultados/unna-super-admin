@@ -718,7 +718,7 @@ const Atribuicao = () => {
                 <CardResumoTexto
                   titulo="Pagantes por dia"
                   valor={`${(data.periodo_divulgacao.pagantes_por_dia_com_anuncio ?? 0).toLocaleString('pt-BR')} × ${(data.periodo_divulgacao.pagantes_por_dia_sem_anuncio ?? 0).toLocaleString('pt-BR')}`}
-                  detalhe={`Com anúncio (${data.periodo_divulgacao.pagantes_em_dias_com_anuncio}) × sem anúncio (${data.periodo_divulgacao.pagantes_em_dias_sem_anuncio}), todas as origens`}
+                  detalhe={`Com anúncio (${data.periodo_divulgacao.pagantes_em_dias_com_anuncio}) × sem anúncio (${data.periodo_divulgacao.pagantes_em_dias_sem_anuncio}), todas as origens${data.periodo_divulgacao.pagantes_fora_da_comparacao ? ` · ${data.periodo_divulgacao.pagantes_fora_da_comparacao} da importação fora da conta` : ''}`}
                   icone={<Users size={18} className="text-gray-600" />}
                   cor="bg-gray-100"
                 />

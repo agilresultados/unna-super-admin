@@ -212,6 +212,8 @@ export interface ResumoPeriodoDivulgacao {
   mrr_atribuido: number;
   receita_atribuida: number;
   custo_por_pagante: number | null;
+  /** Pagantes com marca "nenhum" (importação de 12/05), fora da comparação por dia. */
+  pagantes_fora_da_comparacao?: number;
   pagantes_em_dias_com_anuncio: number;
   pagantes_em_dias_sem_anuncio: number;
   pagantes_por_dia_com_anuncio: number | null;
