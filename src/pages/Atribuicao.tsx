@@ -4,6 +4,8 @@ import Button from '@/components/ui/Button';
 import {
   AlertCircle,
   BadgeCheck,
+  CalendarRange,
+  CircleDollarSign,
   Share2 as Facebook,
   Megaphone,
   RefreshCw,
@@ -19,6 +21,7 @@ import {
   type CadastroAtribuido,
   type RelatorioAtribuicao,
 } from '@/services/empresa.service';
+import PeriodosDivulgacao from '@/components/superadmin/PeriodosDivulgacao';
 
 /** Data de N dias atrás no formato YYYY-MM-DD (input date). */
 const diasAtras = (dias: number) => {
@@ -38,14 +41,49 @@ const formatarData = (iso: string) =>
     year: '2-digit',
   });
 
-/** Origem de um cadastro, derivada dos click-ids persistidos no registro. */
-const origemDoCadastro = (c: {
-  gclid?: string | null;
-  gbraid?: string | null;
-  wbraid?: string | null;
-  fbclid?: string | null;
-  utm_source?: string | null;
-}) => {
+const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+const NOMES_PLATAFORMA: Record<string, string> = {
+  google: 'Google',
+  meta: 'Meta',
+  instagram: 'Instagram',
+  agencia: 'Agência',
+};
+const nomesPlataformas = (lista: string[]) =>
+  lista.map((p) => NOMES_PLATAFORMA[p] ?? p).join(' + ');
+
+/**
+ * Origem de um cadastro. Usa a `atribuicao` do backend (ordem de prioridade:
+ * anúncio confirmado → orgânico conhecido → marca gravada → período de
+ * divulgação); sem ela, cai nos click-ids como antes.
+ */
+const origemDoCadastro = (c: CadastroAtribuido) => {
+  const a = c.atribuicao;
+  if (a) {
+    switch (a.tipo) {
+      case 'anuncio':
+        return {
+          label: `${nomesPlataformas(a.plataformas)} Ads`,
+          className: a.plataformas.includes('google') ? 'bg-blue-100 text-blue-700' : 'bg-indigo-100 text-indigo-700',
+        };
+      case 'presumido':
+        return { label: `Período de anúncio · ${nomesPlataformas(a.plataformas)}`, className: 'bg-orange-100 text-orange-700' };
+      case 'misto':
+        return { label: `Misto · ${nomesPlataformas(a.plataformas)}`, className: 'bg-purple-100 text-purple-700' };
+      case 'organico':
+        return {
+          label:
+            a.motivo === 'bio_instagram'
+              ? 'Orgânico · bio do Instagram'
+              : a.motivo === 'indicacao_afiliado'
+                ? 'Orgânico · afiliado'
+                : `Orgânico · ${nomesPlataformas(a.plataformas)}`,
+          className: 'bg-teal-100 text-teal-700',
+        };
+      case 'sem':
+        return { label: 'Sem atribuição', className: 'bg-gray-100 text-gray-500' };
+    }
+  }
   if (c.gclid || c.gbraid || c.wbraid) {
     return { label: 'Google Ads', className: 'bg-blue-100 text-blue-700' };
   }
@@ -76,9 +114,22 @@ const veioDoMeta = (c: CadastroAtribuido) => !!c.fbclid;
 const temClickId = (c: CadastroAtribuido) => veioDoGoogle(c) || veioDoMeta(c);
 const assinaturaAtiva = (c: CadastroAtribuido) => c.assinatura_status === 'ACTIVE';
 
-type Origem = 'anuncio' | 'google' | 'meta' | 'utm' | 'sem';
+type Origem =
+  | 'atribuido'
+  | 'presumido'
+  | 'misto'
+  | 'organico'
+  | 'anuncio'
+  | 'google'
+  | 'meta'
+  | 'utm'
+  | 'sem';
 
 const ORIGENS: { valor: Origem; label: string }[] = [
+  { valor: 'atribuido', label: 'Atribuído a anúncio (confirmado, presumido ou misto)' },
+  { valor: 'presumido', label: 'Período de anúncio (presumido)' },
+  { valor: 'misto', label: 'Misto (anúncio + ação orgânica)' },
+  { valor: 'organico', label: 'Orgânico conhecido (bio, afiliado, stories)' },
   { valor: 'anuncio', label: 'De anúncio (Google ou Meta)' },
   { valor: 'google', label: 'Google Ads' },
   { valor: 'meta', label: 'Meta Ads' },
@@ -87,7 +138,14 @@ const ORIGENS: { valor: Origem; label: string }[] = [
 ];
 
 const casaOrigem = (c: CadastroAtribuido, origem: Origem) => {
+  const tipo = c.atribuicao?.tipo;
   switch (origem) {
+    case 'atribuido':
+      return tipo === 'anuncio' || tipo === 'presumido' || tipo === 'misto';
+    case 'presumido':
+    case 'misto':
+    case 'organico':
+      return tipo === origem;
     case 'anuncio':
       return temClickId(c);
     case 'google':
@@ -104,6 +162,7 @@ const casaOrigem = (c: CadastroAtribuido, origem: Origem) => {
 interface Filtros {
   busca: string;
   origem: Origem | typeof TODOS;
+  pagamento: 'pagou' | 'nao' | typeof TODOS;
   fonte: string;
   campanha: string;
   conteudo: string;
@@ -113,6 +172,7 @@ interface Filtros {
 const FILTROS_VAZIOS: Filtros = {
   busca: '',
   origem: TODOS,
+  pagamento: TODOS,
   fonte: TODOS,
   campanha: TODOS,
   conteudo: TODOS,
@@ -129,6 +189,7 @@ const aplicarFiltros = (cadastros: CadastroAtribuido[], f: Filtros) => {
     (c) =>
       (!busca || c.nome_negocio.toLowerCase().includes(busca)) &&
       (f.origem === TODOS || casaOrigem(c, f.origem)) &&
+      (f.pagamento === TODOS || (f.pagamento === 'pagou') === !!c.pagou) &&
       casaCampo(c.utm_source, f.fonte) &&
       casaCampo(c.utm_campaign, f.campanha) &&
       casaCampo(c.utm_content, f.conteudo) &&
@@ -239,6 +300,28 @@ const CardResumo = ({ titulo, valor, detalhe, icone, cor }: CardResumoProps) => 
             {titulo}
           </p>
           <p className="text-2xl font-black mt-1">{valor}</p>
+          {detalhe && <p className="text-xs text-gray-500 mt-0.5">{detalhe}</p>}
+        </div>
+        <div className={`p-2 rounded-lg shrink-0 ${cor}`}>{icone}</div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+/** Igual ao CardResumo, para valores já formatados (moeda, razão). */
+const CardResumoTexto = ({
+  titulo,
+  valor,
+  detalhe,
+  icone,
+  cor,
+}: Omit<CardResumoProps, 'valor'> & { valor: string }) => (
+  <Card>
+    <CardContent className="p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold truncate">{titulo}</p>
+          <p className="text-2xl font-black mt-1 whitespace-nowrap">{valor}</p>
           {detalhe && <p className="text-xs text-gray-500 mt-0.5">{detalhe}</p>}
         </div>
         <div className={`p-2 rounded-lg shrink-0 ${cor}`}>{icone}</div>
@@ -475,6 +558,15 @@ const Atribuicao = () => {
                 opcoes={ORIGENS.map((o) => ({ valor: o.valor, label: o.label }))}
               />
               <SelectFiltro
+                rotulo="Pagamento"
+                valor={filtros.pagamento}
+                onChange={(v) => setFiltro('pagamento', v as Filtros['pagamento'])}
+                opcoes={[
+                  { valor: 'pagou', label: 'Já pagou' },
+                  { valor: 'nao', label: 'Ainda não pagou' },
+                ]}
+              />
+              <SelectFiltro
                 rotulo="Fonte (utm_source)"
                 valor={filtros.fonte}
                 onChange={(v) => setFiltro('fonte', v)}
@@ -584,6 +676,56 @@ const Atribuicao = () => {
             />
           </div>
 
+          {data?.periodo_divulgacao && (
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">
+                Períodos de divulgação · {data.periodo_divulgacao.dias.com_anuncio} dias com anúncio e{' '}
+                {data.periodo_divulgacao.dias.sem_anuncio} sem, no intervalo escolhido (sem os filtros acima)
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4">
+                <CardResumo
+                  titulo="Pagantes atribuídos"
+                  valor={data.periodo_divulgacao.pagantes_atribuidos}
+                  detalhe={`${data.periodo_divulgacao.pagantes_anuncio_confirmado} confirmados · ${data.periodo_divulgacao.pagantes_presumidos} presumidos · ${data.periodo_divulgacao.pagantes_mistos} mistos`}
+                  icone={<CalendarRange size={18} className="text-orange-600" />}
+                  cor="bg-orange-100"
+                />
+                <CardResumoTexto
+                  titulo="MRR atribuído"
+                  valor={brl(data.periodo_divulgacao.mrr_atribuido)}
+                  detalhe={`${brl(data.periodo_divulgacao.receita_atribuida)} já recebidos`}
+                  icone={<TrendingUp size={18} className="text-green-600" />}
+                  cor="bg-green-100"
+                />
+                <CardResumoTexto
+                  titulo="Investimento"
+                  valor={brl(data.periodo_divulgacao.investimento)}
+                  detalhe="Dos períodos de anúncio, rateado pelos dias do intervalo"
+                  icone={<CircleDollarSign size={18} className="text-amber-600" />}
+                  cor="bg-amber-100"
+                />
+                <CardResumoTexto
+                  titulo="Custo por pagante"
+                  valor={
+                    data.periodo_divulgacao.custo_por_pagante != null
+                      ? brl(data.periodo_divulgacao.custo_por_pagante)
+                      : '—'
+                  }
+                  detalhe="Investimento ÷ pagantes atribuídos · meta da agência: até R$ 150"
+                  icone={<Target size={18} className="text-rose-600" />}
+                  cor="bg-rose-100"
+                />
+                <CardResumoTexto
+                  titulo="Pagantes por dia"
+                  valor={`${(data.periodo_divulgacao.pagantes_por_dia_com_anuncio ?? 0).toLocaleString('pt-BR')} × ${(data.periodo_divulgacao.pagantes_por_dia_sem_anuncio ?? 0).toLocaleString('pt-BR')}`}
+                  detalhe={`Com anúncio (${data.periodo_divulgacao.pagantes_em_dias_com_anuncio}) × sem anúncio (${data.periodo_divulgacao.pagantes_em_dias_sem_anuncio}), todas as origens`}
+                  icone={<Users size={18} className="text-gray-600" />}
+                  cor="bg-gray-100"
+                />
+              </div>
+            </div>
+          )}
+
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
             <strong>Como ler:</strong> só entram nas colunas Google/Meta os cadastros que
             chegaram com click-id na URL. Quem veio por busca orgânica, indicação ou
@@ -591,6 +733,13 @@ const Atribuicao = () => {
             rastreio. A divergência normal para o painel do anunciante vem de bloqueadores
             e de quem cadastra em outro dispositivo. “Assinaturas ativas” é o status de
             hoje de quem se cadastrou no período (trial não conta).
+            <br />
+            <strong>Origem:</strong> a coluna aplica uma ordem de prioridade. Anúncio confirmado
+            (click-id do Google, UTM paga ou UTM de campanha cadastrada) vem primeiro; depois
+            orgânico conhecido (bio do Instagram, indicação de afiliado); depois a marca gravada no
+            histórico; e por fim os períodos de divulgação. “Período de anúncio” é presunção:
+            cadastro sem outro sinal feito com campanha no ar. “Misto” é quando, no mesmo dia,
+            também havia ação orgânica cadastrada.
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -631,12 +780,13 @@ const Atribuicao = () => {
                       <th className="px-4 py-3">Campanha</th>
                       <th className="px-4 py-3">Conteúdo (CTA)</th>
                       <th className="px-4 py-3">Assinatura</th>
+                      <th className="px-4 py-3 text-right">MRR</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-sm">
                     {cadastros.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-4 py-6 text-center text-gray-400">
+                        <td colSpan={7} className="px-4 py-6 text-center text-gray-400">
                           {filtrosAtivos > 0
                             ? 'Nenhum cadastro com esses filtros.'
                             : 'Nenhum cadastro no período.'}
@@ -678,6 +828,17 @@ const Atribuicao = () => {
                               <span className="text-gray-400">—</span>
                             )}
                           </td>
+                          <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                            {c.pagou ? (
+                              c.mrr ? (
+                                <span className="font-semibold text-green-700">{brl(c.mrr)}</span>
+                              ) : (
+                                <span className="text-gray-400">pagou, inativa</span>
+                              )
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
                         </tr>
                       );
                     })}
@@ -686,6 +847,8 @@ const Atribuicao = () => {
               </div>
             </CardContent>
           </Card>
+
+          <PeriodosDivulgacao periodos={data?.periodos ?? []} onAlterado={carregar} />
         </>
       )}
     </div>

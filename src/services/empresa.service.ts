@@ -144,6 +144,78 @@ export interface CadastroAtribuido {
   utm_campaign?: string | null;
   utm_content?: string | null;
   assinatura_status?: 'ACTIVE' | 'TRIAL' | 'PENDING' | 'CANCELLED' | 'EXPIRED' | null;
+  /** Marca gravada para o histórico: plataformas ("google,meta") ou "nenhum". */
+  atribuicao_periodo?: string | null;
+  /** Origem pela ordem de prioridade do backend (marketing/atribuicao-periodo.ts). */
+  atribuicao?: AtribuicaoCadastro;
+  /** Dia do cadastro no fuso de Brasília (YYYY-MM-DD). */
+  dia_cadastro?: string;
+  /** Tem ao menos um pagamento confirmado. */
+  pagou?: boolean;
+  /** Soma dos pagamentos confirmados (bruto). */
+  receita?: number;
+  /** Mensalidade hoje, se a assinatura estiver ativa (anual ÷ 12). */
+  mrr?: number;
+}
+
+export type TipoAtribuicao = 'anuncio' | 'organico' | 'presumido' | 'misto' | 'sem';
+
+export interface AtribuicaoCadastro {
+  tipo: TipoAtribuicao;
+  plataformas: string[];
+  motivo:
+    | 'click_id'
+    | 'utm_campanha'
+    | 'utm_pago'
+    | 'bio_instagram'
+    | 'indicacao_afiliado'
+    | 'marca_gravada'
+    | 'periodo'
+    | 'nenhum';
+}
+
+export type TipoPeriodoDivulgacao = 'ANUNCIO' | 'ORGANICO';
+
+/** Período em que uma campanha ou ação orgânica esteve no ar. */
+export interface PeriodoDivulgacao {
+  id: string;
+  tipo: TipoPeriodoDivulgacao;
+  plataforma: string;
+  descricao?: string | null;
+  /** YYYY-MM-DD (o backend devolve ISO à meia-noite UTC). */
+  inicio: string;
+  fim: string;
+  investimento: number;
+  utm_campaign?: string | null;
+}
+
+export interface PeriodoDivulgacaoInput {
+  tipo: TipoPeriodoDivulgacao;
+  plataforma: string;
+  descricao?: string;
+  inicio: string;
+  fim: string;
+  investimento?: number;
+  utm_campaign?: string;
+}
+
+export interface ResumoPeriodoDivulgacao {
+  dias: { inicio: string; fim: string; com_anuncio: number; sem_anuncio: number };
+  investimento: number;
+  pagantes: number;
+  pagantes_anuncio_confirmado: number;
+  pagantes_presumidos: number;
+  pagantes_mistos: number;
+  pagantes_organicos: number;
+  pagantes_sem_atribuicao: number;
+  pagantes_atribuidos: number;
+  mrr_atribuido: number;
+  receita_atribuida: number;
+  custo_por_pagante: number | null;
+  pagantes_em_dias_com_anuncio: number;
+  pagantes_em_dias_sem_anuncio: number;
+  pagantes_por_dia_com_anuncio: number | null;
+  pagantes_por_dia_sem_anuncio: number | null;
 }
 
 export interface RelatorioAtribuicao {
@@ -160,6 +232,9 @@ export interface RelatorioAtribuicao {
     ativas_google: number;
     ativas_meta: number;
   };
+  /** Ausente em backend anterior aos períodos de divulgação. */
+  periodo_divulgacao?: ResumoPeriodoDivulgacao;
+  periodos?: PeriodoDivulgacao[];
   por_fonte: AtribuicaoGrupo[];
   por_campanha: AtribuicaoGrupo[];
   cadastros: CadastroAtribuido[];
@@ -257,6 +332,26 @@ class EmpresaService {
     return await apiService.get<RelatorioAtribuicao>(
       `/empresas/relatorio-atribuicao${qs ? `?${qs}` : ''}`,
     );
+  }
+
+  /** Períodos de anúncio e de ação orgânica usados na atribuição (superadmin). */
+  async listarPeriodosDivulgacao(): Promise<PeriodoDivulgacao[]> {
+    return await apiService.get<PeriodoDivulgacao[]>('/periodos-divulgacao');
+  }
+
+  async criarPeriodoDivulgacao(dados: PeriodoDivulgacaoInput): Promise<PeriodoDivulgacao> {
+    return await apiService.post<PeriodoDivulgacao>('/periodos-divulgacao', dados);
+  }
+
+  async atualizarPeriodoDivulgacao(
+    id: string,
+    dados: Partial<PeriodoDivulgacaoInput>,
+  ): Promise<PeriodoDivulgacao> {
+    return await apiService.patch<PeriodoDivulgacao>(`/periodos-divulgacao/${id}`, dados);
+  }
+
+  async removerPeriodoDivulgacao(id: string): Promise<void> {
+    await apiService.delete(`/periodos-divulgacao/${id}`);
   }
 }
 
