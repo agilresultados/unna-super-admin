@@ -6,6 +6,7 @@ export interface Usuario {
   email: string;
   role: 'SUPER_ADMIN' | 'ADMIN' | 'FUNCIONARIO';
   is_limited?: boolean;
+  somente_leitura?: boolean;
   empresa?: {
     id: string;
     nome_negocio: string;
@@ -65,6 +66,7 @@ export interface CreateUsuarioData {
   status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   empresaId?: string;
   is_limited?: boolean;
+  somente_leitura?: boolean;
 }
 
 export interface UpdateUsuarioData {
@@ -76,6 +78,7 @@ export interface UpdateUsuarioData {
   empresaId?: string;
   telefone?: string;
   is_limited?: boolean;
+  somente_leitura?: boolean;
 }
 
 class UsuarioService {

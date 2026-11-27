@@ -1,5 +1,6 @@
 import { MessageCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { useSomenteLeitura } from '@/hooks/useSomenteLeitura';
 import type { EmpresaPanorama } from '@/services/super-admin.service';
 import { formatCurrencyDynamic } from '@/utils/currencyUtils';
 import { abrirWhatsApp, COR_SITUACAO, haQuantoTempo, precisaDeAcao, rotuloDetalhado } from './situacao-rotulos';
@@ -14,6 +15,7 @@ export const ID_PRECISA_DE_ACAO = 'precisa-de-acao';
 
 /** Quem cobrar: graça e bloqueadas há até 30 dias, maior valor primeiro. */
 const PrecisaDeAcao = ({ empresas, onAbrirLista }: Props) => {
+  const somenteLeitura = useSomenteLeitura();
   const fila = empresas.filter(precisaDeAcao).sort((a, b) => (b.valorMensal ?? 0) - (a.valorMensal ?? 0));
 
   return (
@@ -49,10 +51,12 @@ const PrecisaDeAcao = ({ empresas, onAbrirLista }: Props) => {
                 <span className="text-sm font-medium text-gray-800 w-24 text-right">
                   {e.valorMensal != null ? formatCurrencyDynamic(e.valorMensal) : '—'}
                 </span>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-green-600"
-                  onClick={() => abrirWhatsApp(e.telefone)} title="Conversar no WhatsApp" disabled={!e.telefone}>
-                  <MessageCircle className="w-4 h-4" />
-                </Button>
+                {!somenteLeitura && (
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-green-600"
+                    onClick={() => abrirWhatsApp(e.telefone)} title="Conversar no WhatsApp" disabled={!e.telefone}>
+                    <MessageCircle className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </li>
           ))}

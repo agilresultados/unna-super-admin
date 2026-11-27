@@ -86,10 +86,37 @@ export const NAV_GROUPS: NavGroup[] = [
 ]
 
 /**
+ * Telas do perfil de consulta (`somente_leitura`, acesso de sócio).
+ *
+ * Tem de casar com as rotas marcadas com `@AllowSomenteLeitura()` no backend:
+ * tela liberada aqui sem a rota liberada lá abre vazia com 403. A lista é
+ * fechada de propósito — tela nova não aparece para esse perfil sem passar por aqui.
+ */
+// Relatórios fica fora de propósito: no superadmin o "Faturamento" de lá soma o
+// caixa de TODOS os salões, não a receita da Unna — para um sócio, lê como
+// faturamento da empresa. A receita da Unna está no Dashboard (MRR).
+export const ROTAS_SOMENTE_LEITURA = ['/dashboard', '/assinaturas', '/planos'] as const
+
+export function rotaPermitidaSomenteLeitura(pathname: string): boolean {
+  return ROTAS_SOMENTE_LEITURA.some((rota) => pathname === rota || pathname.startsWith(`${rota}/`))
+}
+
+/**
  * `hideWhenLimited` = esconder quando o usuário É limited (SDR).
  * Admin completo (`isLimited === false`) vê todos os grupos.
+ * Perfil de consulta vê só as telas de `ROTAS_SOMENTE_LEITURA`.
  */
-export function filterNavForUser(isLimited: boolean) {
+export function filterNavForUser(isLimited: boolean, somenteLeitura = false) {
+  if (somenteLeitura) {
+    return {
+      top: NAV_TOP.filter((item) => !item.limitedOnly && rotaPermitidaSomenteLeitura(item.to)),
+      groups: NAV_GROUPS.map((g) => ({
+        ...g,
+        items: g.items.filter((item) => rotaPermitidaSomenteLeitura(item.to)),
+      })).filter((g) => g.items.length > 0),
+    }
+  }
+
   const top = NAV_TOP.filter((item) => {
     if (isLimited) {
       // SDR: só itens limitedOnly, ou itens sem hideWhenLimited

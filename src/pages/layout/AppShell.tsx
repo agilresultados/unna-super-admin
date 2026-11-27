@@ -2,7 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useAuth } from '@/contexts/AuthContext'
-import { filterNavForUser, findGroupForPath, type NavGroup, type NavItem } from '@/config/navigation'
+import {
+  filterNavForUser,
+  findGroupForPath,
+  rotaPermitidaSomenteLeitura,
+  type NavGroup,
+  type NavItem,
+} from '@/config/navigation'
 import { NavIcon } from '@/components/NavIcon'
 import { Button } from '@/components/Button'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -156,8 +162,9 @@ export function AppShell() {
   const [gruposAbertos, setGruposAbertos] = useState<string[]>(lerGruposAbertos)
 
   const isLimited = user?.is_limited === true
-  const { top, groups } = filterNavForUser(isLimited)
-  const brand = isLimited ? 'Painel SDR' : 'Unna Admin'
+  const somenteLeitura = user?.somente_leitura === true
+  const { top, groups } = filterNavForUser(isLimited, somenteLeitura)
+  const brand = somenteLeitura ? 'Unna · Consulta' : isLimited ? 'Painel SDR' : 'Unna Admin'
 
   const grupoAtivo = findGroupForPath(groups, location.pathname)
 
@@ -237,7 +244,9 @@ export function AppShell() {
           match: (p: string) => p.startsWith('/sdr/winback/campanhas'),
         },
       ]
-    : MOBILE_QUICK
+    : somenteLeitura
+      ? MOBILE_QUICK.filter((item) => rotaPermitidaSomenteLeitura(item.to))
+      : MOBILE_QUICK
 
   return (
     <div className="flex h-full min-h-0 overflow-hidden bg-app-bg font-sans text-sm text-text-main antialiased">
@@ -329,7 +338,7 @@ export function AppShell() {
                 {user?.nome || 'Super Admin'}
               </span>
               <span className="text-[10px] uppercase tracking-wider text-text-muted">
-                {isLimited ? 'SDR' : 'Acesso Total'}
+                {somenteLeitura ? 'Somente leitura' : isLimited ? 'SDR' : 'Acesso Total'}
               </span>
             </div>
             <div className="flex h-8 w-8 items-center justify-center rounded-full border border-teal-border bg-card-bg text-[10px] font-bold text-teal-main">

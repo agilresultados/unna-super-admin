@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Button from '@/components/ui/Button';
+import { useSomenteLeitura } from '@/hooks/useSomenteLeitura';
 import Input from '@/components/ui/Input';
 import CurrencyInput from '@/components/ui/CurrencyInput';
 import {
@@ -424,6 +425,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSave }) =>
 };
 
 const Planos = () => {
+  const somenteLeitura = useSomenteLeitura();
   const [planos, setPlanos] = useState<Plano[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -608,10 +610,12 @@ const Planos = () => {
     <div className="w-full min-w-0 max-w-full space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Gerenciar Planos</h1>
-        <Button onClick={() => setIsCreateModalOpen(true)} className="w-full shrink-0 sm:w-auto">
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Plano
-        </Button>
+        {!somenteLeitura && (
+          <Button onClick={() => setIsCreateModalOpen(true)} className="w-full shrink-0 sm:w-auto">
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Plano
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -655,6 +659,7 @@ const Planos = () => {
                 </div>
 
                 {/* Botões de Ação */}
+                {!somenteLeitura && (
                 <div className="flex gap-2 flex-shrink-0">
                   <Button
                     variant="outline"
@@ -678,6 +683,7 @@ const Planos = () => {
                     )}
                   </Button>
                 </div>
+                )}
               </div>
 
               {/* Informações de Preço */}

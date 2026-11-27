@@ -24,8 +24,10 @@ import { empresaService, Empresa } from '@/services/empresa.service';
 import { superAdminService, EmpresaFaturas } from '@/services/super-admin.service';
 import { formatCurrencyDynamic } from '@/utils/currencyUtils';
 import { toast } from 'sonner';
+import { useSomenteLeitura } from '@/hooks/useSomenteLeitura';
 
 const Assinaturas = () => {
+  const somenteLeitura = useSomenteLeitura();
   const [assinaturas, setAssinaturas] = useState<Assinatura[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,7 +83,8 @@ const Assinaturas = () => {
       const [assinaturasData, planosData, empresasData] = await Promise.all([
         assinaturaService.getAssinaturas(),
         planoService.getPlanos(),
-        empresaService.getTodasEmpresas()
+        // A lista de empresas só serve ao modal de criação, que o perfil de consulta não abre.
+        somenteLeitura ? Promise.resolve([] as Empresa[]) : empresaService.getTodasEmpresas()
       ]);
 
       setAssinaturas(assinaturasData);
@@ -317,10 +320,12 @@ const Assinaturas = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center md:flex-row flex-col">
         <h1 className="text-3xl font-bold text-gray-900 md:pb-0 pb-4">Gerenciar Assinaturas</h1>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Assinatura
-        </Button>
+        {!somenteLeitura && (
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Assinatura
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -490,18 +495,22 @@ const Assinaturas = () => {
                   <Button variant="outline" size="sm" onClick={() => handleViewFaturas(assinatura)} title={`Ver faturas (${assinatura.gateway === 'woovi' ? 'Woovi' : 'Asaas'})`}>
                     <Receipt className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(assinatura)} title="Editar">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-red-600 hover:text-red-700"
-                    onClick={() => handleDelete(assinatura.id, assinatura.empresa?.nome_negocio || 'NI')}
-                    title="Remover"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {!somenteLeitura && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(assinatura)} title="Editar">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleDelete(assinatura.id, assinatura.empresa?.nome_negocio || 'NI')}
+                        title="Remover"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -610,7 +619,8 @@ const Assinaturas = () => {
                       {f.paymentDate && ` • Pago em: ${new Date(f.paymentDate).toLocaleDateString('pt-BR')}`}
                     </p>
                   </div>
-                  {f.invoiceUrl && (
+                  {/* Perfil de consulta: a página da cobrança mostra os dados de quem paga; o backend nem manda o link. */}
+                  {f.invoiceUrl && !somenteLeitura && (
                     <a
                       href={f.invoiceUrl}
                       target="_blank"

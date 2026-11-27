@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSomenteLeitura } from '@/hooks/useSomenteLeitura';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import Input from '@/components/ui/Input';
@@ -27,6 +28,8 @@ const diasAntes = (dia: string, n: number) =>
  * e aquisição; o retrato e a fila de ação são sempre de agora.
  */
 const SuperAdminDashboard = () => {
+  // Perfil de consulta não vê quem está online: é monitoramento de operação, não de resultado.
+  const somenteLeitura = useSomenteLeitura();
   const [inicio, setInicio] = useState(() => diasAntes(hojeBrt(), 30));
   const [fim, setFim] = useState(hojeBrt);
   const [panorama, setPanorama] = useState<PanoramaAssinaturas | null>(null);
@@ -61,7 +64,7 @@ const SuperAdminDashboard = () => {
     return () => { cancelado = true; };
   }, [inicio, fim]);
 
-  useEffect(() => { buscarOnline(); }, [buscarOnline]);
+  useEffect(() => { if (!somenteLeitura) buscarOnline(); }, [buscarOnline, somenteLeitura]);
 
   const abrirLista = (titulo: string, empresas: EmpresaPanorama[]) => setLista({ titulo, empresas });
 
@@ -81,7 +84,7 @@ const SuperAdminDashboard = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
             Dashboard
-            <button
+            {!somenteLeitura && <button
               type="button"
               onClick={() => { setOnlineAberto(true); buscarOnline(); }}
               className="flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-200"
@@ -89,7 +92,7 @@ const SuperAdminDashboard = () => {
             >
               <span className="h-2 w-2 rounded-full bg-green-500"></span>
               {online.length} online
-            </button>
+            </button>}
           </h1>
           <p className="text-sm text-gray-500">Situação real das assinaturas, pelas datas de vencimento e pagamentos</p>
         </div>

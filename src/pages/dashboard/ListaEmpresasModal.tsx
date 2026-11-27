@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
+import { useSomenteLeitura } from '@/hooks/useSomenteLeitura';
 import Input from '@/components/ui/Input';
 import type { EmpresaPanorama } from '@/services/super-admin.service';
 import { formatCurrencyDynamic } from '@/utils/currencyUtils';
@@ -22,6 +23,7 @@ const dataHora = (iso: string | null) => (iso ? new Date(iso).toLocaleString('pt
  * do antigo modal de engajamento e acrescenta situação, valor e datas.
  */
 const ListaEmpresasModal = ({ titulo, empresas, aberto, onFechar }: Props) => {
+  const somenteLeitura = useSomenteLeitura();
   const [busca, setBusca] = useState('');
 
   const filtradas = useMemo(() => {
@@ -67,7 +69,8 @@ const ListaEmpresasModal = ({ titulo, empresas, aberto, onFechar }: Props) => {
                 <tr key={e.id} className="hover:bg-gray-50">
                   <td className="px-3 py-3">
                     <div className="font-semibold text-gray-900">{e.nome_negocio}</div>
-                    <div className="text-[10px] text-gray-500">{e.email ?? '—'}</div>
+                    {/* Perfil de consulta: o backend já não manda e-mail; a linha some em vez de mostrar "—". */}
+                    {!somenteLeitura && <div className="text-[10px] text-gray-500">{e.email ?? '—'}</div>}
                   </td>
                   <td className="px-3 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${COR_SITUACAO[e.situacao]}`}>
@@ -92,16 +95,18 @@ const ListaEmpresasModal = ({ titulo, empresas, aberto, onFechar }: Props) => {
                   <td className="px-3 py-3 text-xs text-gray-500">{dataHora(e.ultimaTransacao)}</td>
                   <td className="px-3 py-3 text-xs font-medium text-gray-900 whitespace-nowrap">{haQuantoTempo(e.ultimaAtividade)}</td>
                   <td className="px-3 py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-green-600"
-                      onClick={() => abrirWhatsApp(e.telefone)}
-                      title="Conversar no WhatsApp"
-                      disabled={!e.telefone}
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                    </Button>
+                    {!somenteLeitura && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-green-600"
+                        onClick={() => abrirWhatsApp(e.telefone)}
+                        title="Conversar no WhatsApp"
+                        disabled={!e.telefone}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
