@@ -62,6 +62,7 @@ interface EditUsuarioData {
   role: 'SUPER_ADMIN' | 'ADMIN' | 'FUNCIONARIO';
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   is_limited?: boolean;
+  somente_leitura?: boolean;
 }
 
 const Usuarios = () => {
@@ -79,7 +80,8 @@ const Usuarios = () => {
     senha: '',
     role: 'ADMIN',
     status: 'ACTIVE',
-    is_limited: false
+    is_limited: false,
+    somente_leitura: false
   });
   const [ddiValue, setDdiValue] = useState('55');
   const [showPassword, setShowPassword] = useState(false);
@@ -137,7 +139,8 @@ const Usuarios = () => {
       senha: '',
       role: usuario.role,
       status: usuario.status,
-      is_limited: usuario.is_limited || false
+      is_limited: usuario.is_limited || false,
+      somente_leitura: usuario.somente_leitura || false
     });
     setShowEditModal(true);
     setError(null);
@@ -166,6 +169,7 @@ const Usuarios = () => {
       // Se a role não for SUPER_ADMIN, a flag is_limited deve ser limpa
       if (dataToSend.role !== 'SUPER_ADMIN') {
         dataToSend.is_limited = false;
+        dataToSend.somente_leitura = false;
       }
 
       const updatedUsuario = await usuarioService.updateUsuario(editingUsuario.id, dataToSend);
@@ -184,7 +188,8 @@ const Usuarios = () => {
         senha: '',
         role: 'ADMIN',
         status: 'ACTIVE',
-        is_limited: false
+        is_limited: false,
+        somente_leitura: false
       });
     } catch (error: any) {
       console.error('Erro ao salvar usuário:', error);
@@ -828,7 +833,20 @@ const Usuarios = () => {
                   </div>
                   <Switch
                     checked={!!editData.is_limited}
-                    onChange={() => setEditData({ ...editData, is_limited: !editData.is_limited })}
+                    onChange={() => setEditData({ ...editData, is_limited: !editData.is_limited, somente_leitura: false })}
+                  />
+                </div>
+              )}
+
+              {editData.role === 'SUPER_ADMIN' && (
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 mt-4">
+                  <div>
+                    <p className="text-xs font-bold text-gray-700">Somente leitura (consulta de sócio)</p>
+                    <p className="text-[10px] text-gray-500">Vê Dashboard, Assinaturas e Planos, sem nenhuma ação</p>
+                  </div>
+                  <Switch
+                    checked={!!editData.somente_leitura}
+                    onChange={() => setEditData({ ...editData, somente_leitura: !editData.somente_leitura, is_limited: false })}
                   />
                 </div>
               )}

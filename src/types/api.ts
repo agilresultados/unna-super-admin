@@ -8,6 +8,8 @@ export interface User {
   empresaId: string | null
   email_verificado?: boolean
   is_limited?: boolean
+  /** Perfil de consulta (sócio): só leitura, só as telas de `ROTAS_SOMENTE_LEITURA`. */
+  somente_leitura?: boolean
   createdAt?: string
 }
 
